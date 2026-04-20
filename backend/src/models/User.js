@@ -23,17 +23,7 @@
             required: true,
             minlength: 6
         },
-        // Reset verification fields
-        resetVerificationCode: String,
-        resetCodeExpiry: Date,
-        resetEmailAttempts: {
-            type: Number,
-            default: 0
-        },
-        lastResetEmailAt: Date,
-        resetBlockedUntil: Date,
-        
-        // Reset token fields (existing)
+        // Password reset token fields
         resetPasswordToken: String,
         resetPasswordExpire: Date
     }, 

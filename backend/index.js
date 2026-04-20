@@ -6,12 +6,7 @@ import dotenv from 'dotenv';
 // Load environment variables FIRST
 dotenv.config();
 
-console.log('=== ENVIRONMENT VARIABLES LOADED ===');
-console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
-console.log('JWT Secret:', process.env.JWT_SECRET ? 'Set' : 'Not set');
-console.log('Email User:', process.env.EMAIL_USER ? 'Set' : 'Not set');
-console.log('USDA API Key:', process.env.USDA_API_KEY ? 'Set' : 'Not set');
-console.log('====================================');
+console.log('🌿 DietManager backend starting...');
 
 // Import routes
 import authRoutes from './src/routes/auth.js';
@@ -22,7 +17,9 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:5173', // Your Vite frontend URL
+    origin: function (origin, callback) {
+        return callback(null, true);
+    },
     credentials: true
 }));
 app.use(express.json());
@@ -55,12 +52,9 @@ process.on('unhandledRejection', (err, promise) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
     console.log(`🥗 Diet API: http://localhost:${PORT}/api/diet`);
     console.log(`❤️ Health Check: http://localhost:${PORT}/health`);
-});
-
-
-//changing the file to commit again to check
+});

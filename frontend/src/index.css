@@ -1,2 +1,306 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+/* --- Premium Pro-Grade Design System --- */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* High-Contrast Light Mode */
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --accent-primary: #10b981;
+  --accent-secondary: #4f46e5;
+  --border-light: rgba(15, 23, 42, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(15, 23, 42, 0.05);
+
+  /* High-end Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.dark {
+  /* High-Contrast Dark Mode */
+  --bg-main: #0a0c10;
+  --bg-card: #12151c;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-light: rgba(255, 255, 255, 0.05);
+  --accent-primary: #10b981;
+  --accent-secondary: #3b82f6;
+  --glass-bg: rgba(18, 21, 28, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.03);
+}
+
+/* Base Body Styles */
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* --- Compatibility Classes (Restored) --- */
+.app-bg { background-color: var(--bg-main); transition: background-color 0.3s; }
+.card-bg { background-color: var(--bg-card); border: 1px solid var(--border-light); }
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+
+.nav-btn {
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+.nav-btn:hover { background-color: var(--border-light); }
+.nav-btn.active {
+  background-color: var(--accent-primary);
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+/* --- New Premium Tokens --- */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.pro-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pro-card:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
+  border-color: var(--accent-primary);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-secondary) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* --- Interactive Elements --- */
+/* --- Zen-Modern Premium Tokens --- */
+
+.premium-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.dark .premium-card {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.dark .premium-card:hover {
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.4);
+}
+
+.text-zen {
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.6;
+}
+
+.input-style-pro {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px solid var(--border-light);
+  border-radius: 1rem;
+  padding: 0.875rem 1.25rem;
+  transition: all 0.3s ease;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.input-style-pro:focus {
+  border-color: var(--accent-primary);
+  background: rgba(16, 185, 129, 0.03);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.accent-gradient {
+  background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+}
+
+.btn-primary-pro {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #059669 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.mood-chip {
+  cursor: pointer;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.mood-chip:hover {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: var(--accent-primary);
+}
+.mood-chip.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white !important;
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+}
+.mood-chip.active span { color: white !important; }
+
+/* legacy input style for searching */
+.search-input {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    outline: none;
+}
+.search-input:focus { border-color: var(--accent-primary); }
+
+/* --- Legacy Card Styles (Restored for Compatibility) --- */
+.food-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  color: white;
+  transition: transform 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.food-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); }
+
+.card-calories { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+.card-protein { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.card-weight { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+.card-goal { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+
+.card-watermark {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  font-size: 5rem;
+  opacity: 0.1;
+  transform: rotate(-15deg);
+  pointer-events: none;
+}
+
+/* Animation */
+.animate-enter { animation: proSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes proSlideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Dark Theme Override --- */
+.dark-theme {
+  --bg-main: #0a0c10;
+  --bg-card: #12151c;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-light: rgba(255, 255, 255, 0.05);
+}
+
+/* --- Glass Circle (Dashboard FoodStatCard) --- */
+.glass-circle {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* --- Custom Scrollbar --- */
+.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar-track { background: transparent; }
+.custom-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+/* --- GroceryList Classes --- */
+.list-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+.list-card:hover { box-shadow: var(--shadow-md); }
+
+.item-row {
+  transition: background-color 0.15s ease;
+  border-radius: 0.5rem;
+}
+
+.checked-row { opacity: 0.45; }
+.checked-row p { text-decoration: line-through; }
+
+.checkbox-custom {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.3rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: white;
+}
+.checkbox-custom.checked {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+/* --- Print Styles --- */
+@media print {
+  .no-print { display: none !important; }
+  .print-area { padding: 0; }
+  .print-only { display: block; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; }
+  .print-item { page-break-inside: avoid; }
+  .list-card { border: 1px solid #ccc; break-inside: avoid; }
+  body { background: white !important; color: black !important; }
+}
+@media screen {
+  .print-only { display: none; }
+}
+

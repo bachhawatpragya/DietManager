@@ -5,6 +5,7 @@ import MealPlan from '../models/MealPlan.js';
 import Progress from '../models/Progress.js';
 import FoodAPIService from '../services/foodAPI.js';
 import { authenticateToken } from './auth.js';
+import { generateDailyMenu } from '../services/aiService.js';
 
 const router = express.Router();
 
@@ -16,8 +17,6 @@ router.use(authenticateToken);
 // User Profile Routes
 router.post('/profile', async (req, res) => {
     try {
-        console.log('📝 Saving profile for user:', req.user.userId);
-        
         const profileData = {
             userId: req.user.userId,
             ...req.body
@@ -59,8 +58,6 @@ router.post('/profile', async (req, res) => {
 
 router.get('/profile', async (req, res) => {
     try {
-        console.log('📋 Fetching profile for user:', req.user.userId);
-        
         const profile = await UserProfile.findOne({ userId: req.user.userId });
         
         if (!profile) {
@@ -88,9 +85,6 @@ router.get('/profile', async (req, res) => {
 router.get('/foods', async (req, res) => {
     try {
         const { search, category, page = 1, limit = 20 } = req.query;
-        
-        console.log('🔍 Searching foods:', { search, category, page, limit });
-        
         let query = { isPublic: true };
         
         if (search && search.trim() !== '') {
@@ -108,7 +102,6 @@ router.get('/foods', async (req, res) => {
 
         const total = await Food.countDocuments(query);
 
-        console.log(`✅ Found ${foods.length} foods`);
         res.json({
             success: true,
             foods,
@@ -137,7 +130,6 @@ router.get('/foods/search', async (req, res) => {
             });
         }
 
-        console.log('🔍 External food search:', query);
         const results = await FoodAPIService.searchFoods(query);
 
         res.json({
@@ -155,11 +147,77 @@ router.get('/foods/search', async (req, res) => {
     }
 });
 
+// AI Meal Generation Route — MUST be before /meal-plan/:date to avoid 'generate' being treated as a date
+router.post('/meal-plan/generate', async (req, res) => {
+    try {
+        const profile = await UserProfile.findOne({ userId: req.user.userId });
+        
+        if (!profile || !profile.age) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please complete your profile to generate a tailored plan.'
+            });
+        }
+
+        // 2. Call AI Service
+        const aiResponse = await generateDailyMenu(profile);
+
+        // 3. Process and save AI-generated foods into our database
+        // This ensures they have real ObjectIds for the MealPlan model
+        const processedMeals = await Promise.all(aiResponse.meals.map(async (meal) => {
+            const processedItems = await Promise.all(meal.items.map(async (item) => {
+                // Try to find if this food already exists
+                let food = await Food.findOne({ 
+                    name: item.name,
+                    'nutrition.calories': item.nutrition.calories,
+                    brand: 'AI Generated'
+                });
+
+                if (!food) {
+                    // Create new food entry
+                    food = new Food({
+                        name: item.name,
+                        brand: 'AI Generated',
+                        servingSize: item.servingSize,
+                        nutrition: item.nutrition,
+                        category: 'other',
+                        source: 'sample',
+                        isPublic: false,
+                        createdBy: req.user.userId
+                    });
+                    await food.save();
+                }
+
+                return {
+                    food: food,
+                    servingSize: item.servingSize
+                };
+            }));
+
+            return {
+                ...meal,
+                items: processedItems
+            };
+        }));
+
+        // 4. Return the generated meals
+        res.json({
+            success: true,
+            meals: processedMeals
+        });
+
+    } catch (error) {
+        console.error('❌ Generation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate menu: ' + error.message
+        });
+    }
+});
+
 // Add custom food to our database
 router.post('/foods', async (req, res) => {
     try {
-        console.log('➕ Adding custom food for user:', req.user.userId);
-        
         const foodData = {
             ...req.body,
             createdBy: req.user.userId
@@ -168,7 +226,6 @@ router.post('/foods', async (req, res) => {
         const food = new Food(foodData);
         await food.save();
 
-        console.log('✅ Food created successfully:', food.name);
         res.status(201).json({
             success: true,
             message: 'Food created successfully',
@@ -187,8 +244,6 @@ router.post('/foods', async (req, res) => {
 // Save external food to our database
 router.post('/foods/save-external', async (req, res) => {
     try {
-        console.log('➕ Saving external food to database');
-        
         const { foodData } = req.body;
         const userId = req.user?.userId;
         
@@ -266,8 +321,6 @@ router.post('/foods/save-external', async (req, res) => {
 router.get('/meal-plan/:date', async (req, res) => {
     try {
         const { date } = req.params;
-        console.log('📅 Fetching meal plan for:', date);
-        
         const mealPlan = await MealPlan.findOne({
             userId: req.user.userId,
             date: new Date(date)
@@ -302,9 +355,6 @@ router.post('/meal-plan/:date', async (req, res) => {
     try {
         const { date } = req.params;
         const { meals, notes } = req.body;
-
-        console.log('💾 Saving meal plan for:', date);
-        
         let mealPlan = await MealPlan.findOne({
             userId: req.user.userId,
             date: new Date(date)
@@ -325,7 +375,6 @@ router.post('/meal-plan/:date', async (req, res) => {
         await mealPlan.save();
         await mealPlan.populate('meals.items.food');
 
-        console.log('✅ Meal plan saved successfully');
         res.json({
             success: true,
             message: 'Meal plan saved successfully',
@@ -341,11 +390,83 @@ router.post('/meal-plan/:date', async (req, res) => {
     }
 });
 
+// Grocery List Route
+router.get('/grocery-list', async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: 'startDate and endDate are required' });
+        }
+
+        const mealPlans = await MealPlan.find({
+            userId: req.user.userId,
+            date: {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            }
+        }).populate('meals.items.food');
+
+        // Aggregate foods
+        const aggregatedFoods = {};
+
+        mealPlans.forEach(plan => {
+            plan.meals.forEach(meal => {
+                if (!meal.items) return;
+                meal.items.forEach(item => {
+                    if (item.food) {
+                        const foodId = item.food._id.toString();
+                        const unit = item.servingSize?.unit?.toLowerCase() || 'g';
+                        const amount = parseFloat(item.servingSize?.amount) || 0;
+                        
+                        // Use foodId + unit as unique key to prevent merging incompatible units (g vs cup)
+                        const key = `${foodId}_${unit}`;
+
+                        if (!aggregatedFoods[key]) {
+                            aggregatedFoods[key] = {
+                                food: item.food,
+                                totalAmount: 0,
+                                unit: unit,
+                                category: item.food.category || 'other'
+                            };
+                        }
+                        aggregatedFoods[key].totalAmount += amount;
+                    }
+                });
+            });
+        });
+
+        // Group by category
+        const groceryList = Object.values(aggregatedFoods).reduce((grouped, item) => {
+            const cat = item.category;
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push({
+                foodId: item.food._id,
+                name: item.food.name,
+                brand: item.food.brand,
+                totalAmount: Math.round(item.totalAmount * 10) / 10,
+                unit: item.unit
+            });
+            return grouped;
+        }, {});
+
+        res.json({
+            success: true,
+            groceryList,
+            totalItems: Object.keys(aggregatedFoods).length
+        });
+    } catch (error) {
+        console.error('❌ Grocery list fetch error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching grocery list',
+            error: error.message
+        });
+    }
+});
+
 // Progress Routes
 router.post('/progress', async (req, res) => {
     try {
-        console.log('📊 Recording progress for user:', req.user.userId);
-        
         const progressData = {
             userId: req.user.userId,
             ...req.body
@@ -354,7 +475,6 @@ router.post('/progress', async (req, res) => {
         const progress = new Progress(progressData);
         await progress.save();
 
-        console.log('✅ Progress recorded successfully');
         res.status(201).json({
             success: true,
             message: 'Progress recorded successfully',
@@ -373,13 +493,9 @@ router.post('/progress', async (req, res) => {
 router.get('/progress', async (req, res) => {
     try {
         const { limit = 30 } = req.query;
-        console.log('📈 Fetching progress history, limit:', limit);
-        
         const progress = await Progress.find({ userId: req.user.userId })
             .sort({ date: -1 })
             .limit(parseInt(limit));
-
-        console.log(`✅ Found ${progress.length} progress records`);
         res.json({
             success: true,
             progress
@@ -397,22 +513,19 @@ router.get('/progress', async (req, res) => {
 // Dashboard Stats
 router.get('/dashboard', async (req, res) => {
     try {
-        console.log('🏠 Fetching dashboard data for user:', req.user.userId);
-        
         const profile = await UserProfile.findOne({ userId: req.user.userId });
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const now = new Date();
+        const todayUtc = new Date(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
         
         const todayMealPlan = await MealPlan.findOne({
             userId: req.user.userId,
-            date: today
+            date: todayUtc
         }).populate('meals.items.food');
 
         const recentProgress = await Progress.findOne({
             userId: req.user.userId
         }).sort({ date: -1 });
 
-        console.log('✅ Dashboard data fetched successfully');
         res.json({
             success: true,
             stats: {

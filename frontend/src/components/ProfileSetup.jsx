@@ -1,409 +1,352 @@
 import React, { useState, useEffect } from 'react';
 import { dietAPI } from '../services/api';
+import {
+    FaUser, FaPersonRunning, FaAppleWhole, FaFire, FaWheatAwn,
+    FaDroplet, FaCheckDouble, FaShieldHalved, FaArrowsRotate
+} from 'react-icons/fa6';
+import { GiBodyHeight, GiWeightScale, GiMuscleUp } from 'react-icons/gi';
 
 const ProfileSetup = ({ onProfileUpdate }) => {
+    // --- State ---
     const [formData, setFormData] = useState({
-        age: '',
-        gender: '',
-        height: '',
-        weight: '',
-        goal: 'maintenance',
-        activityLevel: 'moderate',
-        dietaryRestrictions: [],
-        allergies: []
+        age: '', gender: '', height: '', weight: '',
+        goal: 'maintenance', activityLevel: 'moderate',
+        dietaryRestrictions: [], allergies: []
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [calculatedTargets, setCalculatedTargets] = useState(null);
 
+    // --- Effects ---
     useEffect(() => {
-        loadProfile();
+        const fetchProfile = async () => {
+            try {
+                const res = await dietAPI.getProfile();
+                if (res.success && res.profile) {
+                    const p = res.profile;
+                    setFormData({
+                        age: p.age || '',
+                        gender: p.gender || '',
+                        height: p.height || '',
+                        weight: p.weight || '',
+                        goal: p.goal || 'maintenance',
+                        activityLevel: p.activityLevel || 'moderate',
+                        dietaryRestrictions: p.dietaryRestrictions || [],
+                        allergies: p.allergies || []
+                    });
+                    // Map model fields to calculatedTargets display format
+                    if (p.dailyCalories) {
+                        setCalculatedTargets({
+                            calories: p.dailyCalories,
+                            protein: p.proteinTarget || 0,
+                            carbs: p.carbsTarget || 0,
+                            fat: p.fatTarget || 0
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Profile fetch failed:', err);
+            }
+        };
+        fetchProfile();
     }, []);
 
-    const loadProfile = async () => {
-        try {
-            const result = await dietAPI.getProfile();
-            if (result.success && result.profile) {
-                setFormData({
-                    age: result.profile.age || '',
-                    gender: result.profile.gender || '',
-                    height: result.profile.height || '',
-                    weight: result.profile.weight || '',
-                    goal: result.profile.goal || 'maintenance',
-                    activityLevel: result.profile.activityLevel || 'moderate',
-                    dietaryRestrictions: result.profile.dietaryRestrictions || [],
-                    allergies: result.profile.allergies || []
-                });
-                if (result.profile.dailyCalories) {
-                    setCalculatedTargets({
-                        calories: result.profile.dailyCalories,
-                        protein: result.profile.proteinTarget,
-                        carbs: result.profile.carbsTarget,
-                        fat: result.profile.fatTarget
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('Error loading profile:', error);
-        }
-    };
-
+    // --- Handlers ---
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        
         if (type === 'checkbox') {
-            if (name === 'dietaryRestrictions') {
-                setFormData(prev => ({
-                    ...prev,
-                    dietaryRestrictions: checked 
-                        ? [...prev.dietaryRestrictions, value]
-                        : prev.dietaryRestrictions.filter(item => item !== value)
-                }));
-            }
-        } else {
             setFormData(prev => ({
                 ...prev,
-                [name]: value
+                dietaryRestrictions: checked
+                    ? [...prev.dietaryRestrictions, value]
+                    : prev.dietaryRestrictions.filter(r => r !== value)
             }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
 
     const handleAllergyChange = (e) => {
-        const allergies = e.target.value.split(',').map(item => item.trim()).filter(item => item);
-        setFormData(prev => ({
-            ...prev,
-            allergies
-        }));
+        const allergies = e.target.value.split(',').map(s => s.trim());
+        setFormData(prev => ({ ...prev, allergies }));
     };
 
     const calculateTargets = () => {
-        const { age, gender, height, weight, activityLevel, goal } = formData;
-        
-        if (!age || !gender || !height || !weight) {
-            setMessage({ type: 'error', text: 'Please fill age, gender, height, and weight to calculate targets' });
+        const { age, height, weight, gender, activityLevel, goal } = formData;
+        if (!age || !height || !weight || !gender) {
+            setMessage({ type: 'error', text: 'Please fill in Age, Gender, Height and Weight first.' });
             return;
         }
 
-        // Basic BMR calculation
-        let bmr;
-        if (gender === 'male') {
-            bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-        } else {
-            bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-        }
+        // --- BMR (Mifflin-St Jeor Equation) ---
+        let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+        bmr = gender === 'male' ? bmr + 5 : bmr - 161;
 
-        // Activity multiplier
-        const activityMultipliers = {
-            sedentary: 1.2,
-            light: 1.375,
-            moderate: 1.55,
-            active: 1.725,
-            very_active: 1.9
-        };
+        // --- TDEE ---
+        const multipliers = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
+        let calories = Math.round(bmr * multipliers[activityLevel]);
 
-        let maintenanceCalories = bmr * (activityMultipliers[activityLevel] || 1.55);
+        if (goal === 'weight_loss') calories -= 500;
+        if (goal === 'weight_gain') calories += 500;
 
-        // Goal adjustment
-        if (goal === 'weight_loss') {
-            maintenanceCalories -= 500;
-        } else if (goal === 'weight_gain' || goal === 'muscle_gain') {
-            maintenanceCalories += 500;
-        }
-
-        const calories = Math.round(maintenanceCalories);
-        const protein = Math.round((calories * 0.3) / 4);
+        const protein = Math.round(weight * 2);
         const fat = Math.round((calories * 0.25) / 9);
-        const carbs = Math.round((calories * 0.45) / 4);
+        const carbs = Math.round((calories - (protein * 4) - (fat * 9)) / 4);
 
-        setCalculatedTargets({ calories, protein, carbs, fat });
-        setMessage({ type: 'success', text: 'Targets calculated successfully!' });
+        const targets = { calories, protein, carbs, fat };
+        setCalculatedTargets(targets);
+        setMessage({ type: 'success', text: 'Targets recalculated successfully!' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        return targets;
+    };
+
+    const handleAllergySubmit = async () => {
+        try {
+            await dietAPI.updateProfile({ ...formData });
+            setMessage({ type: 'success', text: 'Allergies saved successfully!' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Failed to save allergies. Please try again.' });
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setMessage({ type: '', text: '' });
-
         try {
-            const result = await dietAPI.updateProfile(formData);
-            if (result.success) {
-                setMessage({ type: 'success', text: 'Profile saved successfully!' });
-                if (onProfileUpdate) onProfileUpdate();
-                
-                if (result.profile) {
-                    setCalculatedTargets({
-                        calories: result.profile.dailyCalories,
-                        protein: result.profile.proteinTarget,
-                        carbs: result.profile.carbsTarget,
-                        fat: result.profile.fatTarget
-                    });
-                }
-            } else {
-                setMessage({ type: 'error', text: result.message });
-            }
-        } catch (error) {
-            setMessage({ type: 'error', text: 'Error saving profile' });
+            const targets = calculateTargets();
+            await dietAPI.updateProfile({ ...formData, dailyTargets: targets });
+            setMessage({ type: 'success', text: 'Profile saved successfully!' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+            if (onProfileUpdate) onProfileUpdate();
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
         } finally {
             setLoading(false);
         }
     };
 
-    // --- Custom Styles & Classes ---
-    const styles = `
-        /* Inheriting theme variables from parent if available, else defaults */
-        .input-field {
-            background-color: var(--bg-main, #f8fafc);
-            color: var(--text-main, #0f172a);
-            border: 1px solid var(--border, #e2e8f0);
-            transition: all 0.2s;
-        }
-        .input-field:focus {
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-            outline: none;
-        }
-        
-        .diet-tag-checkbox {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-        }
-        
-        .diet-tag-label {
-            transition: all 0.2s;
-        }
-        
-        .diet-tag-checkbox:checked + .diet-tag-label {
-            background-color: #ecfdf5; /* emerald-50 */
-            border-color: #10b981;    /* emerald-500 */
-            color: #047857;           /* emerald-700 */
-            font-weight: 600;
-        }
-        /* Dark mode specific for checked state */
-        .dark .diet-tag-checkbox:checked + .diet-tag-label {
-            background-color: rgba(16, 185, 129, 0.2);
-            border-color: #10b981;
-            color: #34d399;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-enter { animation: fadeIn 0.4s ease-out forwards; }
-    `;
+    const dietOptions = [
+        { id: 'vegan', icon: '🌱' },
+        { id: 'vegetarian', icon: '🥚' },
+        { id: 'keto', icon: '🥩' },
+        { id: 'paleo', icon: '🍖' },
+        { id: 'gluten-free', icon: '🌾' },
+        { id: 'dairy-free', icon: '🥛' }
+    ];
 
     return (
-        <div className="max-w-5xl mx-auto pb-20 animate-enter">
-            <style>{styles}</style>
+        <div className="max-w-7xl mx-auto px-6 py-12 space-y-16 animate-enter">
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                
-                {/* --- Header --- */}
-                <div className="card-bg rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile Setup</h2>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Fine-tune your personal details for accurate nutrition.</p>
-                    </div>
-                    {/* Status Message */}
-                    {message.text && (
-                        <div className={`px-4 py-2 rounded-xl text-sm font-medium animate-enter ${
-                            message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                            'bg-red-50 text-red-700 border border-red-200'
-                        }`}>
-                            {message.text}
-                        </div>
-                    )}
+            {/* Zen-Modern Header */}
+            <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-6 pb-10 border-b border-slate-800/50">
+                <div>
+                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">Personal Wellness Profile</h1>
+                    <p className="text-slate-600 dark:text-slate-400 text-lg font-medium">Fine-tune your biometrics for a perfectly balanced lifestyle.</p>
                 </div>
+                <div className="px-5 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]"></span>
+                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold tracking-widest uppercase">Our Goal =<span className="text-slate-900 dark:text-white"> Your Wellness</span></span>
+                </div>
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* --- Left Column: Personal Info --- */}
-                    <div className="space-y-6">
-                        {/* Personal Details Card */}
-                        <div className="card-bg rounded-3xl p-6 shadow-sm">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <span>👤</span> Personal Details
-                            </h3>
-                            <div className="grid grid-cols-2 gap-5">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Age</label>
-                                    <input
-                                        type="number"
-                                        name="age"
-                                        value={formData.age}
-                                        onChange={handleChange}
-                                        className="input-field w-full px-4 py-2.5 rounded-xl"
-                                        placeholder="Years"
-                                        min="13" max="120"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Gender</label>
-                                    <select
-                                        name="gender"
-                                        value={formData.gender}
-                                        onChange={handleChange}
-                                        className="input-field w-full px-4 py-2.5 rounded-xl"
-                                    >
-                                        <option value="">Select</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Height (cm)</label>
-                                    <input
-                                        type="number"
-                                        name="height"
-                                        value={formData.height}
-                                        onChange={handleChange}
-                                        className="input-field w-full px-4 py-2.5 rounded-xl"
-                                        placeholder="cm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Weight (kg)</label>
-                                    <input
-                                        type="number"
-                                        name="weight"
-                                        value={formData.weight}
-                                        onChange={handleChange}
-                                        className="input-field w-full px-4 py-2.5 rounded-xl"
-                                        placeholder="kg"
-                                        step="0.1"
-                                    />
-                                </div>
+            {message.text && (
+                <div className={`p-4 rounded-2xl border ${message.type === 'success' ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500' : 'border-rose-500/20 bg-rose-500/5 text-rose-500'} text-sm font-semibold text-center animate-enter`}>
+                    {message.text}
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+
+                {/* Left Pane: Lifestyle & Biometrics */}
+                <div className="lg:col-span-8 space-y-12">
+
+                    {/* Section 01: Physical Data */}
+                    <section className="premium-card p-10">
+                        <div className="flex items-center gap-4 mb-10">
+                            <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500">
+                                <FaUser className="text-2xl" />
                             </div>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Physical Data</h3>
                         </div>
 
-                        {/* Lifestyle Card */}
-                        <div className="card-bg rounded-3xl p-6 shadow-sm">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <span>🏃</span> Lifestyle & Goals
-                            </h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Main Goal</label>
-                                    <select
-                                        name="goal"
-                                        value={formData.goal}
-                                        onChange={handleChange}
-                                        className="input-field w-full px-4 py-2.5 rounded-xl"
-                                    >
-                                        <option value="weight_loss">📉 Weight Loss</option>
-                                        <option value="weight_gain">📈 Weight Gain</option>
-                                        <option value="muscle_gain">💪 Muscle Gain</option>
-                                        <option value="maintenance">⚖️ Maintenance</option>
-                                    </select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+                            {[
+                                { label: 'Current Age', name: 'age', val: formData.age },
+                                { label: 'Your Gender', name: 'gender', val: formData.gender, type: 'select', options: ['male', 'female', 'other'] },
+                                { label: 'Height (cm)', name: 'height', val: formData.height, icon: <GiBodyHeight /> },
+                                { label: 'Weight (kg)', name: 'weight', val: formData.weight, icon: <GiWeightScale />, step: '0.1' }
+                            ].map(field => (
+                                <div key={field.name} className="space-y-3">
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest pl-1">{field.label}</label>
+                                    <div className="relative">
+                                        {field.type === 'select' ? (
+                                            <select name={field.name} value={field.val} onChange={handleChange} className="input-style-pro w-full text-sm font-semibold">
+                                                <option value="">Select ID</option>
+                                                {field.options.map(o => <option key={o} value={o} className="bg-slate-900">{o}</option>)}
+                                            </select>
+                                        ) : (
+                                            <input type="number" name={field.name} value={field.val} onChange={handleChange} step={field.step} className="input-style-pro w-full text-lg font-bold" placeholder="00" />
+                                        )}
+                                        {field.icon && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">{field.icon}</span>}
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Activity Level</label>
-                                    <select
-                                        name="activityLevel"
-                                        value={formData.activityLevel}
-                                        onChange={handleChange}
-                                        className="input-field w-full px-4 py-2.5 rounded-xl"
-                                    >
-                                        <option value="sedentary">Sedentary (Office job, no exercise)</option>
-                                        <option value="light">Light (Exercise 1-3x/week)</option>
-                                        <option value="moderate">Moderate (Exercise 3-5x/week)</option>
-                                        <option value="active">Active (Exercise 6-7x/week)</option>
-                                        <option value="very_active">Very Active (Physical job + training)</option>
-                                    </select>
-                                </div>
-                            </div>
+                            ))}
                         </div>
-                    </div>
+                    </section>
 
-                    {/* --- Right Column: Preferences & Results --- */}
-                    <div className="space-y-6">
-                        
-                        {/* Dietary Preferences Card */}
-                        <div className="card-bg rounded-3xl p-6 shadow-sm">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <span>🥗</span> Dietary Preferences
-                            </h3>
-                            
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Dietary Restrictions</label>
-                            <div className="flex flex-wrap gap-2 mb-5">
-                                {['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free', 'keto', 'paleo'].map(restriction => (
-                                    <label key={restriction} className="relative">
-                                        <input
-                                            type="checkbox"
-                                            name="dietaryRestrictions"
-                                            value={restriction}
-                                            checked={formData.dietaryRestrictions.includes(restriction)}
-                                            onChange={handleChange}
-                                            className="diet-tag-checkbox"
-                                        />
-                                        <span className="diet-tag-label inline-block px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 text-sm hover:border-gray-300">
-                                            {restriction.replace('-', ' ')}
-                                        </span>
-                                    </label>
+                    {/* Section 02: Daily Rhythm & Goals */}
+                    <section className="premium-card p-10">
+                        <div className="flex items-center gap-4 mb-10">
+                            <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500">
+                                <FaPersonRunning className="text-2xl" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Your Rhythm & Goals</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            {[
+                                {
+                                    label: 'Wellness Objective', name: 'goal', options: [
+                                        { v: 'weight_loss', l: 'Healthy Weight Loss' },
+                                        { v: 'weight_gain', l: 'Healthy Weight Gain' },
+                                        { v: 'muscle_gain', l: 'Build Muscle' },
+                                        { v: 'maintenance', l: 'Maintain Balance' }
+                                    ]
+                                },
+                                {
+                                    label: 'Active Lifestyle Level', name: 'activityLevel', options: [
+                                        { v: 'sedentary', l: 'Primarily Sedentary' },
+                                        { v: 'light', l: 'Lightly Active (1-2 workouts)' },
+                                        { v: 'moderate', l: 'Moderately Active (3-5 workouts)' },
+                                        { v: 'active', l: 'Highly Active (6-7 workouts)' },
+                                        { v: 'very_active', l: 'Intense / Athlete Level' }
+                                    ]
+                                }
+                            ].map(select => (
+                                <div key={select.name} className="space-y-4">
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest pl-1">{select.label}</label>
+                                    <select name={select.name} value={formData[select.name]} onChange={handleChange} className="input-style-pro w-full text-base font-semibold bg-white dark:bg-slate-900">
+                                        {select.options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+                                    </select>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Section 03: Dietary Blueprint */}
+                    <section className="premium-card p-10">
+                        <div className="flex items-center gap-4 mb-10">
+                            <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500">
+                                <FaAppleWhole className="text-2xl" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Dietary Preferences</h3>
+                        </div>
+
+                        <div className="space-y-12">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                                {dietOptions.map(opt => (
+                                    <button
+                                        key={opt.id} type="button"
+                                        onClick={() => handleChange({ target: { name: 'dietaryRestrictions', value: opt.id, type: 'checkbox', checked: !formData.dietaryRestrictions.includes(opt.id) } })}
+                                        className={`border px-4 py-3 rounded-2xl flex flex-col items-center gap-2 group transition-all duration-300 ${formData.dietaryRestrictions.includes(opt.id)
+                                            ? 'bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-500 dark:border-emerald-500 shadow-[0_8px_16px_-4px_rgba(16,185,129,0.4)]'
+                                            : 'bg-slate-100 text-slate-600 dark:text-slate-300 dark:bg-slate-800/80 border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800'
+                                            }`}
+                                    >
+                                        <span className="text-2xl transition-transform group-hover:scale-110">{opt.icon}</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">{opt.id}</span>
+                                    </button>
                                 ))}
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Allergies</label>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center pl-1">
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Known Allergies</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleAllergySubmit}
+                                        className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 uppercase tracking-widest transition-colors border border-emerald-500/30 px-3 py-1 rounded-lg hover:bg-emerald-500/10"
+                                    >
+                                        💾 Save Allergies
+                                    </button>
+                                </div>
                                 <input
-                                    type="text"
-                                    value={formData.allergies.join(', ')}
-                                    onChange={handleAllergyChange}
-                                    placeholder="e.g., peanuts, shellfish, dairy"
-                                    className="input-field w-full px-4 py-2.5 rounded-xl"
+                                    type="text" value={formData.allergies.join(', ')} onChange={handleAllergyChange}
+                                    className="input-style-pro w-full font-semibold text-base" placeholder="e.g. Peanuts, Shellfish, Dairy..."
                                 />
+                                <p className="text-[10px] text-slate-400 pl-1">Separate multiple allergies with commas. Click Save Allergies to save independently.</p>
                             </div>
                         </div>
+                    </section>
+                </div>
 
-                        {/* Calculated Targets Widget */}
-                        <div className="card-bg rounded-3xl p-6 shadow-sm border-t-4 border-t-emerald-500">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Daily Targets</h3>
-                                <button
-                                    type="button"
-                                    onClick={calculateTargets}
-                                    disabled={!formData.age || !formData.gender || !formData.height || !formData.weight}
-                                    className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 disabled:opacity-50 transition-colors"
-                                >
-                                    ↻ Recalculate
-                                </button>
-                            </div>
+                {/* Right Pane: Wellness Targets */}
+                <div className="lg:col-span-4 space-y-10 h-fit lg:sticky lg:top-10">
 
-                            {calculatedTargets ? (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl text-center">
-                                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{calculatedTargets.calories}</div>
-                                        <div className="text-xs font-medium text-orange-800 dark:text-orange-300">Calories</div>
-                                    </div>
-                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl text-center">
-                                        <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{calculatedTargets.protein}g</div>
-                                        <div className="text-xs font-medium text-emerald-800 dark:text-emerald-300">Protein</div>
-                                    </div>
-                                    <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl text-center">
-                                        <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{calculatedTargets.carbs}g</div>
-                                        <div className="text-xs font-medium text-amber-800 dark:text-amber-300">Carbs</div>
-                                    </div>
-                                    <div className="bg-rose-50 dark:bg-rose-900/20 p-3 rounded-xl text-center">
-                                        <div className="text-xl font-bold text-rose-600 dark:text-rose-400">{calculatedTargets.fat}g</div>
-                                        <div className="text-xs font-medium text-rose-800 dark:text-rose-300">Fat</div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center py-6 text-gray-400 text-sm italic bg-gray-50 dark:bg-slate-800/50 rounded-xl">
-                                    Fill in your details and click calculate to see your nutrition plan.
-                                </div>
-                            )}
-                        </div>
+                    <div className="premium-card p-10 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 border-emerald-500/10 overflow-hidden relative">
+                        <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl"></div>
 
-                        {/* Save Action */}
-                        <div className="flex justify-end pt-2">
+                        <div className="flex justify-between items-center mb-12 relative z-10">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Daily Targets</h3>
                             <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full sm:w-auto bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 transition-all transform active:scale-95 disabled:opacity-50"
+                                type="button"
+                                onClick={calculateTargets}
+                                className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 border border-emerald-500/30 px-3 py-2 rounded-xl hover:bg-emerald-500/10 transition-all"
                             >
-                                {loading ? 'Saving Changes...' : 'Save Profile'}
+                                <FaArrowsRotate className="text-sm" />
+                                Recalculate
                             </button>
                         </div>
+
+                        {calculatedTargets ? (
+                            <div className="space-y-12 relative z-10">
+                                <div className="text-center md:text-left">
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-1">Energy Allowance</span>
+                                    <div className="flex items-baseline gap-2 justify-center md:justify-start">
+                                        <span className="text-6xl font-black text-emerald-500 tracking-tighter">{calculatedTargets.calories}</span>
+                                        <span className="text-slate-400 dark:text-slate-500 font-bold">kcal</span>
+                                    </div>
+                                    <div className="h-2.5 bg-slate-100 dark:bg-slate-800 w-full rounded-full mt-6 overflow-hidden">
+                                        <div className="h-full accent-gradient shadow-[0_0_15px_rgba(16,185,129,0.4)] w-full"></div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-10">
+                                    {[
+                                        { label: 'Protein', val: calculatedTargets.protein, max: 250, color: 'bg-rose-500/80', shadow: 'shadow-rose-500/20' },
+                                        { label: 'Carbs', val: calculatedTargets.carbs, max: 400, color: 'bg-amber-500/80', shadow: 'shadow-amber-500/20' },
+                                        { label: 'Fats', val: calculatedTargets.fat, max: 150, color: 'bg-indigo-500/80', shadow: 'shadow-indigo-500/20' }
+                                    ].map(macro => (
+                                        <div key={macro.label} className="space-y-3">
+                                            <div className="flex justify-between items-end px-1">
+                                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{macro.label}</span>
+                                                <span className="text-xl font-bold text-slate-900 dark:text-white">{macro.val}g</span>
+                                            </div>
+                                            <div className="h-2 bg-slate-100 dark:bg-slate-800 w-full rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full ${macro.color} ${macro.shadow} shadow-lg transition-all duration-1000`}
+                                                    style={{ width: `${Math.min((macro.val / macro.max) * 100, 100)}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-3xl relative z-10">
+                                <p className="text-slate-500 font-bold leading-relaxed px-6">Input your physical data to reveal your personalized wellness blueprint. ✨</p>
+                            </div>
+                        )}
+
+                        <button
+                            type="submit" disabled={loading}
+                            className="mt-12 w-full py-5 bg-emerald-500 text-slate-950 font-bold uppercase tracking-[0.1em] text-sm rounded-2xl hover:bg-emerald-400 transition-all active:scale-[0.98] shadow-[0_20px_40px_-15px_rgba(16,185,129,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(16,185,129,0.4)]"
+                        >
+                            {loading ? 'Saving Profile...' : 'Update Profile & Plan'}
+                        </button>
                     </div>
+
                 </div>
             </form>
         </div>

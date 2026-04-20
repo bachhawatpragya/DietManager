@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 import User from '../models/User.js';
 
 const router = express.Router();
@@ -26,16 +27,6 @@ const createTransporter = () => {
         }
     });
 };
-
-// DEBUG ROUTE
-router.get('/debug-env', (req, res) => {
-    res.json({
-        emailUser: process.env.EMAIL_USER || 'EMPTY',
-        emailUserLength: process.env.EMAIL_USER ? process.env.EMAIL_USER.length : 0,
-        emailPassLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0,
-        working: !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS
-    });
-});
 
 // REGISTER ROUTE
 router.post('/register', async (req, res) => {
@@ -198,7 +189,6 @@ router.put('/reset-password/:resetToken', async (req, res) => {
         const { password } = req.body;
 
         // Hash token to compare with stored token
-        const crypto = await import('crypto');
         const hashedToken = crypto.createHash('sha256')
             .update(resetToken)
             .digest('hex');
@@ -235,33 +225,7 @@ router.put('/reset-password/:resetToken', async (req, res) => {
     }
 });
 
-// TEST EMAIL ROUTE
-router.post('/test-email', async (req, res) => {
-    try {
-        const transporter = createTransporter();
-        
-        const result = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_USER,
-            subject: 'Test Email from Auth App',
-            html: '<h1>Email is working!</h1><p>Your forgot password system is configured correctly.</p>'
-        });
-
-        res.json({ 
-            success: true, 
-            message: 'Test email sent successfully',
-            messageId: result.messageId
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to send test email',
-            error: error.message
-        });
-    }
-});
-
-// Verify Token Middleware
+// Verify Token Middleware — exported and used by diet.js
 export const authenticateToken = (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
@@ -277,19 +241,11 @@ export const authenticateToken = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (error) {
-        res.status(400).json({
+        res.status(401).json({
             success: false,
-            message: 'Invalid token'
+            message: 'Invalid or expired token. Please log in again.'
         });
     }
 };
-
-// Test route (GET)
-router.get('/', (req, res) => {
-    res.json({
-        success: true,
-        message: "Auth API is working"
-    });   
-});
 
 export default router;

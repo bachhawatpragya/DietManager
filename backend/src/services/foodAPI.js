@@ -195,7 +195,7 @@ class FoodAPIService {
                         cholesterol: foodData.cholesterol
                     },
                     category: foodData.category,
-                    source: 'fallback'
+                    source: 'custom'  // 'fallback' is not a valid enum value in Food model
                 });
             }
         }
@@ -205,13 +205,47 @@ class FoodAPIService {
     categorizeFood(foodName) {
         if (!foodName) return 'other';
         const name = foodName.toLowerCase();
+
+        // Snacks and Fast Food (Checked first to prevent 'cheese' in 'cheeseburger' triggering Dairy)
+        if (name.includes('pizza') || name.includes('burger') || name.includes('fries') ||
+            name.includes('chip') || name.includes('crisp') || name.includes('snack') ||
+            name.includes('cookie') || name.includes('cake') || name.includes('donut') ||
+            name.includes('pastry') || name.includes('chocolate') || name.includes('candy') ||
+            name.includes('popcorn') || name.includes('cracker')) {
+            return 'snacks';
+        }
         
+        // Beverages
+        if (name.includes('drink') || name.includes('beverage') || name.includes('water') ||
+            name.includes('juice') || name.includes('soda') || name.includes('tea') ||
+            name.includes('coffee') || name.includes('beer') || name.includes('wine') ||
+            name.includes('cola')) {
+            return 'beverages';
+        }
+
+        // Condiments
+        if (name.includes('sauce') || name.includes('ketchup') || name.includes('mustard') ||
+            name.includes('mayo') || name.includes('dressing') || name.includes('vinegar') ||
+            name.includes('salt') || name.includes('spice') || name.includes('dip') || 
+            name.includes('syrup')) {
+            return 'condiments';
+        }
+
+        // Fats
+        if (name.includes('oil') || name.includes('butter') || name.includes('margarine') ||
+            name.includes('lard') || name.includes('fat') || name.includes('mayonnaise')) {
+            return 'fats';
+        }
+
+        // Fruits
         if (name.includes('avocado') || name.includes('apple') || name.includes('banana') || 
             name.includes('orange') || name.includes('berry') || name.includes('mango') || 
             name.includes('grape') || name.includes('fruit') || name.includes('peach') ||
             name.includes('pear') || name.includes('plum') || name.includes('cherry')) {
             return 'fruits';
         }
+        
+        // Vegetables
         if (name.includes('broccoli') || name.includes('carrot') || name.includes('spinach') ||
             name.includes('lettuce') || name.includes('tomato') || name.includes('potato') ||
             name.includes('vegetable') || name.includes('cabbage') || name.includes('cauliflower') ||
@@ -219,28 +253,33 @@ class FoodAPIService {
             name.includes('cucumber') || name.includes('zucchini')) {
             return 'vegetables';
         }
+
+        // Grains
         if (name.includes('rice') || name.includes('pasta') || name.includes('bread') ||
             name.includes('oat') || name.includes('wheat') || name.includes('cereal') ||
             name.includes('flour') || name.includes('noodle') || name.includes('quinoa') ||
             name.includes('barley') || name.includes('corn')) {
             return 'grains';
         }
+        
+        // Protein (includes nuts)
         if (name.includes('chicken') || name.includes('beef') || name.includes('fish') ||
             name.includes('egg') || name.includes('tofu') || name.includes('bean') ||
-            name.includes('meat') || name.includes('paneer') || name.includes('lamb') ||
-            name.includes('pork') || name.includes('turkey') || name.includes('salmon') ||
-            name.includes('tuna') || name.includes('prawn') || name.includes('lentil')) {
+            name.includes('meat') || name.includes('lamb') || name.includes('pork') || 
+            name.includes('turkey') || name.includes('salmon') || name.includes('tuna') || 
+            name.includes('prawn') || name.includes('lentil') || name.includes('nut') || 
+            name.includes('almond') || name.includes('walnut') || name.includes('peanut') || 
+            name.includes('cashew') || name.includes('seed')) {
             return 'protein';
         }
+        
+        // Dairy
         if (name.includes('milk') || name.includes('cheese') || name.includes('yogurt') ||
-            name.includes('cream') || name.includes('butter') || name.includes('curd') ||
-            name.includes('dairy') || name.includes('ghee') || name.includes('paneer')) {
+            name.includes('cream') || name.includes('curd') || name.includes('dairy') || 
+            name.includes('ghee') || name.includes('paneer')) {
             return 'dairy';
         }
-        if (name.includes('nut') || name.includes('almond') || name.includes('walnut') ||
-            name.includes('peanut') || name.includes('cashew') || name.includes('seed')) {
-            return 'nuts';
-        }
+
         return 'other';
     }
 }

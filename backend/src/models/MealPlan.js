@@ -23,7 +23,7 @@ const mealSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        enum: ['breakfast', 'lunch', 'dinner', 'snack-1', 'snack-2', 'snack-3']
+        enum: ['breakfast', 'lunch', 'dinner', 'snack-1']
     },
     items: [mealItemSchema],
     totalNutrition: {

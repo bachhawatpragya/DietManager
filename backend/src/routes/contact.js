@@ -29,7 +29,7 @@ router.post("/send-mail", async (req, res) => {
 
         res.json({ success: true, message: "Mail sent successfully" });
     } catch (error) {
-        console.log(error);
+        console.error('Contact form email error:', error);
         res.status(500).json({ success: false, message: "Error Sending Mail" });
     }
 });

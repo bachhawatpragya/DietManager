@@ -27,85 +27,108 @@ export default function ContactPage() {
     }
   };
 
+  const styles = `
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+  `;
+
   return (
-    <div className="min-h-screen flex flex-col app-bg]">
-      <div className="flex-1 flex items-center justify-center">
-        <div className="card-bg border border-gray-200 dark:border-gray-700 w-[80%] rounded-2xl shadow-lg p-12 flex justify-between">
+    <div className="min-h-screen flex flex-col app-bg">
+      <style>{styles}</style>
+      <div className="flex-1 flex flex-col items-center justify-center mt-4 pb-6 w-full px-4 md:px-0">
+
+        <div className="w-full md:w-[90%] lg:w-[80%] mb-8 text-center md:text-left px-2">
+          <h2 className="text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight">Get In Touch</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg font-medium">Have questions or feedback? We'd love to hear from you.</p>
+        </div>
+
+        <div className="card-bg border border-gray-200 dark:border-gray-700 w-full md:w-[90%] lg:w-[80%] rounded-2xl shadow-lg p-8 md:p-12 flex flex-col lg:flex-row justify-between gap-10">
 
           {/* LEFT SIDE */}
-          <div className="w-[45%]">
-            <blockquote className="text-3xl md:text-4xl font-semibold italic text-gray-900 dark:text-white bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 p-6 rounded-xl border-l-4 mb-8">
-              <span className="block">“Struggling to find your nutritional matcha? We can help you blend.”</span>
-              <cite className="text-sm text-green-700 mt-3 block text-right">~ Contact Us</cite>
-            </blockquote>
+          <div className="w-full lg:w-[45%] flex flex-col justify-center">
+            <div className="text-2xl md:text-3xl font-semibold italic text-gray-900 dark:text-white bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 p-8 rounded-2xl border-l-4 mb-8 relative overflow-hidden shadow-sm flex-shrink-0">
+              <span className="block leading-relaxed z-10 relative">“Struggling to find your nutritional matcha? We can help you blend.”</span>
+              <cite className="text-sm text-emerald-700 dark:text-emerald-400 mt-6 block text-right font-bold not-italic z-10 relative">~ Contact Us</cite>
+            </div>
 
-            <div className="flex items-center space-x-6 text-2xl">
-              <a
-                href="https://www.instagram.com"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Instagram"
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-emerald-50 transition"
-              >
-                <FaInstagram className="hover:text-emerald-500 cursor-pointer" />
-              </a>
+            <div className="w-full justify-center flex mt-2">
+              <div className="flex items-center justify-center space-x-6 lg:space-x-8 text-2xl lg:text-3xl text-slate-400">
+                <a
+                  href="https://www.instagram.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-emerald-50 transition hover:text-emerald-500"
+                >
+                  <FaInstagram />
+                </a>
 
-              <a
-                href="https://www.twitter.com"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Twitter"
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-emerald-50 transition"
-              >
-                <FaTwitter className="hover:text-emerald-500 cursor-pointer" />
-              </a>
+                <a
+                  href="https://www.twitter.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Twitter"
+                  className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-emerald-50 transition hover:text-emerald-500"
+                >
+                  <FaTwitter />
+                </a>
 
-              <a
-                href="https://www.facebook.com"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Facebook"
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-emerald-50 transition"
-              >
-                <FaFacebook className="hover:text-emerald-500 cursor-pointer" />
-              </a>
+                <a
+                  href="https://www.facebook.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-emerald-50 transition hover:text-emerald-500"
+                >
+                  <FaFacebook />
+                </a>
+              </div>
             </div>
           </div>
 
-          {/* RIGHT SIDE FORM */}
-          <div className="w-[45%]">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <input
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Your Name"
-                className="search-input p-3 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none"
-                required
-              />
+          {/* RIGHT SIDE FORM (KEPT NEW STYLING) */}
+          <div className="w-full lg:w-[45%]">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 ml-1">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="Your Name"
+                  className="w-full py-3.5 px-5 rounded-xl text-base shadow-sm font-medium bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 transition-all focus:bg-white"
+                  required
+                />
+              </div>
 
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="Your Email"
-                className="search-input p-3 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none"
-                required
-              />
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="Your Email"
+                  className="w-full py-3.5 px-5 rounded-xl text-base shadow-sm font-medium bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 transition-all focus:bg-white"
+                  required
+                />
+              </div>
 
-              <textarea
-                name="message"
-                value={form.message}
-                onChange={handleChange}
-                rows="5"
-                placeholder="Your Feedback"
-                className="search-input p-3 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none"
-                required
-              ></textarea>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 ml-1">Your Message</label>
+                <textarea
+                  name="message"
+                  value={form.message}
+                  onChange={handleChange}
+                  rows="4"
+                  placeholder="Your Feedback"
+                  className="w-full py-3.5 px-5 rounded-xl text-base shadow-sm font-medium bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 transition-all resize-none custom-scroll focus:bg-white"
+                  required
+                ></textarea>
+              </div>
 
-              <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-md shadow-lg shadow-emerald-200 dark:shadow-none transition-transform active:scale-95 cursor-pointer">
+              <button className="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-md shadow-emerald-200 dark:shadow-none transition-transform active:scale-95 cursor-pointer text-base">
                 Send My Recipe for Success!
               </button>
             </form>
@@ -114,7 +137,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* FOOTER MAP - clickable to open Google Maps at admin location */}
+      {/* FOOTER MAP */}
       <footer className="w-full flex justify-center py-8 bg-transparent">
         <div className="w-[80%] flex justify-center">
           <div className="relative w-full h-48 rounded-lg overflow-hidden card-bg border border-gray-200 dark:border-gray-700 shadow-md">
@@ -123,7 +146,7 @@ export default function ContactPage() {
               width="100%"
               height="100%"
               src="https://www.google.com/maps?q=31.2551178,75.7060709&z=15&output=embed"
-              className="pointer-events-none"
+              className="pointer-events-none border-0"
               aria-hidden="true"
             />
             <a

@@ -22,7 +22,7 @@ const foodSchema = new mongoose.Schema({
         unit: {
             type: String,
             required: true,
-            enum: ['g', 'ml', 'cup', 'tbsp', 'tsp', 'piece', 'slice', 'oz']
+            default: 'g'
         }
     },
     
@@ -41,10 +41,7 @@ const foodSchema = new mongoose.Schema({
     // Categorization
     category: {
         type: String,
-        enum: [
-            'fruits', 'vegetables', 'grains', 'protein', 'dairy', 
-            'fats', 'beverages', 'snacks', 'condiments', 'other'
-        ],
+        default: 'other',
         required: true
     },
     

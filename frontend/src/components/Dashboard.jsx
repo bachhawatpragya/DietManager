@@ -6,14 +6,30 @@ import MealPlanner from './MealPlanner';
 import FoodSearch from './FoodSearch';
 import ProgressTracker from './ProgressTracker';
 import ContactPage from './ContactPage';
+import GroceryList from './GroceryList';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
-// --- Icons Import ---
-import { FiSun, FiMoon, FiGrid, FiSearch, FiTrendingUp, FiUser, FiSettings, FiMail } from 'react-icons/fi';
+import { FiSun, FiMoon, FiGrid, FiSearch, FiTrendingUp, FiUser, FiSettings, FiMail, FiShoppingCart, FiArrowRight, FiZap } from 'react-icons/fi';
 import { MdRestaurantMenu, MdOutlineFreeBreakfast, MdOutlineLunchDining, MdOutlineDinnerDining, MdOutlineRestaurant } from 'react-icons/md';
 import { FaFire, FaWeight, FaBullseye, FaHamburger, FaTrophy } from 'react-icons/fa';
 import { GiAvocado, GiChickenLeg, GiSteak } from 'react-icons/gi';
-import { IoWaterOutline } from 'react-icons/io5';
 import { BiBowlRice } from 'react-icons/bi';
+
+/* ─── tiny hook: animated counter ─── */
+const useCounter = (target, duration = 900) => {
+    const [val, setVal] = useState(0);
+    useEffect(() => {
+        let start = 0;
+        const step = target / (duration / 16);
+        const timer = setInterval(() => {
+            start += step;
+            if (start >= target) { setVal(target); clearInterval(timer); }
+            else setVal(Math.round(start));
+        }, 16);
+        return () => clearInterval(timer);
+    }, [target, duration]);
+    return val;
+};
 
 const Dashboard = () => {
     const { user, logout } = useAuth();
@@ -21,7 +37,6 @@ const Dashboard = () => {
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // --- 1. Theme State ---
     const [darkMode, setDarkMode] = useState(() => {
         const saved = localStorage.getItem('theme');
         return saved === 'dark';
@@ -29,174 +44,98 @@ const Dashboard = () => {
 
     useEffect(() => {
         localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
     }, [darkMode]);
 
     const toggleTheme = () => setDarkMode(!darkMode);
 
-    useEffect(() => {
-        loadDashboardData();
-    }, []);
+    useEffect(() => { loadDashboardData(); }, []);
 
     const loadDashboardData = async () => {
         try {
             const result = await dietAPI.getDashboard();
-            if (result.success) {
-                setDashboardData(result.stats);
-            }
-        } catch (error) {
-            console.error('Error loading dashboard:', error);
-        } finally {
-            setLoading(false);
-        }
+            if (result.success) setDashboardData(result.stats);
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
     };
-
-    // --- 2. Custom CSS ---
-    const styles = `
-      :root {
-        --bg-main: #f8fafc;
-        --bg-card: #ffffff;
-        --text-main: #0f172a;
-        --text-sec: #64748b;
-        --border: #e2e8f0;
-      }
-
-      .dark-theme {
-        --bg-main: #0f172a;
-        --bg-card: #1e293b;
-        --text-main: #f8fafc;
-        --text-sec: #94a3b8;
-        --border: #334155;
-      }
-
-      /* Base Layout Styles */
-      .app-bg { background-color: var(--bg-main); color: var(--text-main); transition: background-color 0.3s, color 0.3s; }
-      .card-bg { background-color: var(--bg-card); border: 1px solid var(--border); }
-      .text-primary { color: var(--text-main); }
-      .text-secondary { color: var(--text-sec); }
-      
-      /* --- NEW: Food Card Designs --- */
-      .food-card {
-        position: relative;
-        overflow: hidden;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        color: white;
-        transition: transform 0.2s;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      }
-      .food-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); }
-      
-      /* Gradients & Textures */
-      .card-calories {
-        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-      }
-      .card-protein {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      }
-      .card-weight {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      }
-      .card-goal {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-      }
-
-      /* Decorative Background Icons (Watermarks) */
-      .card-watermark {
-        position: absolute;
-        right: -10px;
-        bottom: -10px;
-        font-size: 5rem;
-        opacity: 0.2;
-        transform: rotate(-15deg);
-        pointer-events: none;
-      }
-      
-      /* Glassmorphism Circle overlay */
-      .glass-circle {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        width: 3rem;
-        height: 3rem;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(4px);
-        font-size: 1.25rem;
-      }
-
-      /* Navigation & Buttons */
-      .nav-btn.active { background-color: #10b981; color: white; }
-      .nav-btn:not(.active):hover { background-color: var(--border); }
-      
-      /* Animations */
-      @keyframes slideUp {
-        from { opacity: 0; transform: translateY(15px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-enter { animation: slideUp 0.4s ease-out forwards; }
-    `;
 
     const renderSection = () => {
         const Wrapper = ({ children }) => <div className="animate-enter">{children}</div>;
-        switch(activeSection) {
-            case 'overview': return <Wrapper><DashboardOverview user={user} data={dashboardData} loading={loading} onRefresh={loadDashboardData} setActiveSection={setActiveSection} /></Wrapper>;
-            case 'profile': return <Wrapper><ProfileSetup onProfileUpdate={loadDashboardData} /></Wrapper>;
-            case 'meal-plan': return <Wrapper><MealPlanner darkMode={darkMode} /></Wrapper>;
-            case 'food-search': return <Wrapper><FoodSearch /></Wrapper>;
-            case 'progress': return <Wrapper><ProgressTracker /></Wrapper>;
-            case 'contact': return <Wrapper><ContactPage /></Wrapper>;
-            default: return <Wrapper><DashboardOverview user={user} data={dashboardData} loading={loading} onRefresh={loadDashboardData} /></Wrapper>;
+        switch (activeSection) {
+            case 'overview':   return <Wrapper><DashboardOverview data={dashboardData} onRefresh={loadDashboardData} setActiveSection={setActiveSection} darkMode={darkMode} /></Wrapper>;
+            case 'profile':    return <Wrapper><ProfileSetup onProfileUpdate={loadDashboardData} /></Wrapper>;
+            case 'meal-plan':  return <Wrapper><MealPlanner darkMode={darkMode} onPlanUpdate={loadDashboardData} onNavigate={setActiveSection} /></Wrapper>;
+            case 'grocery':    return <Wrapper><GroceryList darkMode={darkMode} /></Wrapper>;
+            case 'food-search':return <Wrapper><FoodSearch /></Wrapper>;
+            case 'progress':   return <Wrapper><ProgressTracker /></Wrapper>;
+            case 'contact':    return <Wrapper><ContactPage /></Wrapper>;
+            default:           return <Wrapper><DashboardOverview data={dashboardData} onRefresh={loadDashboardData} setActiveSection={setActiveSection} darkMode={darkMode} /></Wrapper>;
         }
     };
 
     if (loading) {
         return (
             <div className={`min-h-screen flex items-center justify-center flex-col ${darkMode ? 'dark-theme' : ''} app-bg`}>
-                <style>{styles}</style>
-                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-emerald-500 border-t-transparent mb-4"></div>
-                <p className="text-secondary font-medium">Loading your plan...</p>
+                <div className="relative w-16 h-16 mb-6">
+                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500/20"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center text-emerald-500 text-2xl">
+                        <BiBowlRice />
+                    </div>
+                </div>
+                <p className="text-secondary font-semibold tracking-wide">Preparing your plan…</p>
             </div>
         );
     }
 
-    // Navigation Items configuration with React Icons
     const navItems = [
-        { id: 'overview', name: 'Overview', icon: <FiGrid size={18} /> },
-        { id: 'meal-plan', name: 'Meal Plan', icon: <MdRestaurantMenu size={18} /> },
-        { id: 'food-search', name: 'Search', icon: <FiSearch size={18} /> },
-        { id: 'progress', name: 'Progress', icon: <FiTrendingUp size={18} /> },
-        { id: 'profile', name: 'Profile', icon: <FiUser size={18} /> },
-        { id: 'contact', name: 'Contact', icon: <FiMail size={18} /> }
+        { id: 'overview',    name: 'Overview',      icon: <FiGrid size={16} /> },
+        { id: 'meal-plan',   name: 'Meal Plan',     icon: <MdRestaurantMenu size={16} /> },
+        { id: 'grocery',     name: 'Grocery List',  icon: <FiShoppingCart size={16} /> },
+        { id: 'progress',    name: 'Progress',      icon: <FiTrendingUp size={16} /> },
+        { id: 'profile',     name: 'Profile',       icon: <FiUser size={16} /> },
+        { id: 'contact',     name: 'Contact',       icon: <FiMail size={16} /> },
     ];
 
     return (
         <div className={`min-h-screen font-sans transition-colors duration-300 ${darkMode ? 'dark-theme' : ''} app-bg`}>
-            <style>{styles}</style>
-
-            {/* Header */}
-            <header className="sticky top-0 z-50 backdrop-blur-md card-bg border-b-0 shadow-sm">
+            {/* ── Header ── */}
+            <header className="sticky top-0 z-50 backdrop-blur-xl card-bg border-b border-slate-100 dark:border-slate-800/60 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
+                    <div className="flex justify-between items-center py-3.5">
+                        {/* Brand */}
                         <div className="flex items-center gap-3">
-                            <span className="text-3xl p-2 rounded-xl bg-emerald-100/50 text-emerald-600">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white text-xl shadow-md shadow-emerald-500/30">
                                 <BiBowlRice />
-                            </span>
-                            <div>
-                                <h1 className="text-2xl font-bold text-primary tracking-tight">Diet Planner</h1>
                             </div>
+                            <span className="text-xl font-extrabold tracking-tight text-primary">
+                                Diet<span className="text-emerald-500">Planner</span>
+                            </span>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xl text-primary">
-                                {darkMode ? <FiSun /> : <FiMoon />}
+
+                        {/* Right controls */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={toggleTheme}
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                title="Toggle theme"
+                            >
+                                {darkMode ? <FiSun size={17} /> : <FiMoon size={17} />}
                             </button>
-                            <div className="hidden md:flex flex-col items-end">
-                                <span className="text-xs text-secondary">Welcome,</span>
+                            <div className="hidden md:flex flex-col items-end leading-tight">
+                                <span className="text-[10px] uppercase tracking-widest text-secondary font-semibold">Welcome back</span>
                                 <span className="text-sm font-bold text-primary">{user.username}</span>
                             </div>
-                            <button onClick={logout} className="bg-rose-50 text-rose-600 border border-rose-100 py-2 px-4 rounded-xl text-sm font-semibold hover:bg-rose-600 hover:text-white transition-all">
+                            <button
+                                onClick={logout}
+                                className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50 py-2 px-4 rounded-xl text-sm font-semibold hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white transition-all"
+                            >
                                 Logout
                             </button>
                         </div>
@@ -204,19 +143,21 @@ const Dashboard = () => {
                 </div>
             </header>
 
-            {/* Navigation Tabs */}
-            <div className="card-bg sticky top-[76px] z-40 border-t border-gray-100 dark:border-gray-800 shadow-sm">
+            {/* ── Nav Tabs ── */}
+            <div className="card-bg sticky top-[65px] z-40 border-b border-slate-100 dark:border-slate-800/60 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex space-x-2 overflow-x-auto py-3 no-scrollbar">
+                    <div className="flex space-x-1 overflow-x-auto py-2.5 no-scrollbar">
                         {navItems.map((item) => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveSection(item.id)}
-                                className={`nav-btn flex items-center px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                                    activeSection === item.id ? 'active' : 'text-secondary'
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
+                                    activeSection === item.id
+                                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                                        : 'text-secondary hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                             >
-                                <span className="mr-2 flex items-center">{item.icon}</span>
+                                <span className="flex items-center">{item.icon}</span>
                                 {item.name}
                             </button>
                         ))}
@@ -224,7 +165,7 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* Main Content */}
+            {/* ── Main Content ── */}
             <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                 {renderSection()}
             </main>
@@ -232,17 +173,20 @@ const Dashboard = () => {
     );
 };
 
-// Dashboard Overview Component
-const DashboardOverview = ({ user, data, loading, onRefresh, setActiveSection }) => {
+/* ════════════════════════════════════════════
+   DashboardOverview
+════════════════════════════════════════════ */
+const DashboardOverview = ({ data, onRefresh, setActiveSection, darkMode }) => {
+
     if (!data) {
         return (
-            <div className="card-bg rounded-3xl p-12 text-center flex flex-col items-center">
-                <div className="text-6xl mb-4 text-emerald-500">
+            <div className="card-bg rounded-3xl p-16 text-center flex flex-col items-center gap-4 border border-slate-200 dark:border-slate-800">
+                <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center text-4xl text-emerald-500 shadow-lg shadow-emerald-500/10">
                     <GiAvocado />
                 </div>
-                <h3 className="text-xl font-bold text-primary mb-2">Let's get started!</h3>
-                <p className="text-secondary mb-6">No data available. Set up your profile to generate your plan.</p>
-                <button onClick={onRefresh} className="bg-emerald-500 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:bg-emerald-600">
+                <h3 className="text-2xl font-bold text-primary">Let's get started!</h3>
+                <p className="text-secondary max-w-xs">Set up your profile to unlock personalized tracking and AI meal planning.</p>
+                <button onClick={onRefresh} className="mt-2 bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/25 hover:bg-emerald-600 transition-all active:scale-95">
                     Refresh Dashboard
                 </button>
             </div>
@@ -251,188 +195,354 @@ const DashboardOverview = ({ user, data, loading, onRefresh, setActiveSection })
 
     const { profile, todayMealPlan, recentWeight } = data;
 
-    // --- NEW: Designed Food Card Component ---
-    const FoodStatCard = ({ type, label, value, unit, icon, watermark }) => {
-        // Map types to specific CSS classes defined above
-        const classMap = {
-            calories: 'card-calories',
-            protein: 'card-protein',
-            weight: 'card-weight',
-            goal: 'card-goal'
-        };
+    /* ── Macro Calculation ── */
+    let protein = 0, carbs = 0, fat = 0, totalCal = 0;
+    if (todayMealPlan?.meals) {
+        todayMealPlan.meals.forEach(meal => {
+            meal.items?.forEach(item => {
+                if (item.food) {
+                    const factor = (parseFloat(item.servingSize?.amount) || 0) / (parseFloat(item.food.servingSize?.amount) || 100);
+                    const n = item.food.nutrition || {};
+                    protein += (n.protein || 0) * factor;
+                    carbs   += (n.carbs   || 0) * factor;
+                    fat     += (n.fat     || 0) * factor;
+                    totalCal+= (n.calories|| 0) * factor;
+                }
+            });
+        });
+    }
+    const consumed  = { protein: Math.round(protein), carbs: Math.round(carbs), fat: Math.round(fat), calories: Math.round(totalCal) };
+    const totalMacros = consumed.protein + consumed.carbs + consumed.fat;
+    const calTarget = profile?.dailyCalories || 2000;
+    const calPct    = Math.min(100, Math.round((consumed.calories / calTarget) * 100));
 
-        return (
-            <div className={`food-card ${classMap[type]}`}>
-                {/* Visual Watermark (Large background icon) */}
-                <div className="card-watermark">{watermark}</div>
-                
-                {/* Floating Glass Icon */}
-                <div className="glass-circle">
-                    {icon}
-                </div>
+    const macroData = [
+        { name: 'Protein', value: consumed.protein, color: '#10b981', bg: 'bg-emerald-500', light: 'bg-emerald-500/10 text-emerald-500' },
+        { name: 'Carbs',   value: consumed.carbs,   color: '#f59e0b', bg: 'bg-amber-400',   light: 'bg-amber-400/10 text-amber-500' },
+        { name: 'Fat',     value: consumed.fat,      color: '#ef4444', bg: 'bg-rose-500',    light: 'bg-rose-500/10 text-rose-500' },
+    ];
+    const pieData = totalMacros > 0 ? macroData : [{ name: 'No Data', value: 1, color: 'var(--border)' }];
 
-                <div className="relative z-10 mt-2">
-                    <p className="text-xs font-bold uppercase tracking-wider opacity-90">{label}</p>
-                    <div className="flex items-baseline mt-1">
-                        <span className="text-3xl font-extrabold">{value}</span>
-                        {unit && <span className="ml-1 text-sm font-medium opacity-80">{unit}</span>}
-                    </div>
-                    {/* Decorative tiny dots */}
-                    <div className="flex gap-1 mt-3 opacity-50">
-                        <div className="w-1 h-1 bg-white rounded-full"></div>
-                        <div className="w-1 h-1 bg-white rounded-full"></div>
-                        <div className="w-1 h-1 bg-white rounded-full"></div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    /* ── Animated counter for calories ── */
+    const animatedCal = useCounter(consumed.calories);
+
+    /* ── Quick Action config ── */
+    const quickActions = [
+        { id: 'meal-plan',   label: 'Plan Meals',    emoji: '🍽️', gradient: 'from-orange-400 to-amber-400',   shadow: 'shadow-orange-400/25' },
+        { id: 'food-search', label: 'Find Food',     emoji: '🔍', gradient: 'from-emerald-400 to-teal-400',   shadow: 'shadow-emerald-400/25' },
+        { id: 'progress',    label: 'Log Weight',    emoji: '⚖️', gradient: 'from-blue-400 to-indigo-500',    shadow: 'shadow-blue-400/25' },
+        { id: 'grocery',     label: 'Grocery List',  emoji: '🛒', gradient: 'from-violet-400 to-purple-500',  shadow: 'shadow-violet-400/25' },
+    ];
 
     return (
         <div className="space-y-8">
-            {/* Header Text */}
-            <div className="flex flex-col md:flex-row justify-between md:items-end gap-2">
-                <div>
-                    <h2 className="text-2xl font-bold text-primary">Daily Summary</h2>
-                    <p className="text-secondary mt-1">Your nutrition snapshot for today.</p>
-                </div>
-                <div className="text-sm font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-lg border border-emerald-100 dark:border-emerald-800">
-                    📅 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+
+            {/* ── Hero Overview Banner ── */}
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/40 p-7 shadow-sm dark:shadow-xl">
+                {/* Thin top accent */}
+                <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-transparent" />
+
+                <div className="flex flex-col md:flex-row md:items-center gap-8">
+                    {/* Left — title + progress */}
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold mb-2">
+                            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </p>
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
+                            Daily Overview
+                        </h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">
+                            {calPct >= 80
+                                ? 'Near your calorie target — excellent consistency.'
+                                : calPct >= 50
+                                    ? 'Halfway through your nutrition goals for today.'
+                                    : 'Start logging meals to build your daily picture.'}
+                        </p>
+
+                        {/* Progress bar */}
+                        <div className="mt-5">
+                            <div className="flex justify-between items-center mb-1.5">
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Calorie Progress</span>
+                                <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">{animatedCal} / {calTarget} kcal</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-1000 ease-out"
+                                    style={{ width: `${calPct}%` }}
+                                />
+                            </div>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-600 mt-1 text-right tabular-nums">{calPct}% of daily goal</p>
+                        </div>
+                    </div>
+
+                    {/* Right — macro pills */}
+                    <div className="flex md:flex-col gap-3 md:gap-4 flex-shrink-0">
+                        {[
+                            { label: 'Protein', value: `${consumed.protein}g`, color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500' },
+                            { label: 'Carbs',   value: `${consumed.carbs}g`,   color: 'text-amber-600 dark:text-amber-400',   dot: 'bg-amber-400' },
+                            { label: 'Fat',     value: `${consumed.fat}g`,     color: 'text-rose-600 dark:text-rose-400',     dot: 'bg-rose-500' },
+                        ].map(s => (
+                            <div key={s.label} className="flex items-center gap-3 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
+                                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.dot}`} />
+                                <div className="leading-none">
+                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold mb-0.5">{s.label}</p>
+                                    <p className={`text-base font-extrabold tabular-nums ${s.color}`}>{s.value}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            {/* --- Stats Grid with Food Designs --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <FoodStatCard 
-                    type="calories" 
-                    label="Daily Energy" 
-                    value={profile?.dailyCalories || 2000} 
-                    unit="kcal" 
-                    icon={<FaFire />}
-                    watermark={<FaHamburger />} // Burger/Food watermark
-                />
-                <FoodStatCard 
-                    type="protein" 
-                    label="Protein Intake" 
-                    value={profile?.proteinTarget || 50} 
-                    unit="g" 
-                    icon={<GiSteak />}
-                    watermark={<GiChickenLeg />} // Chicken leg watermark
-                />
-                <FoodStatCard 
-                    type="weight" 
-                    label="Current Weight" 
-                    value={recentWeight || profile?.weight || '--'} 
-                    unit="kg" 
-                    icon={<FaWeight />}
-                    watermark={<GiAvocado />} // Avocado watermark (healthy weight)
-                />
-                <FoodStatCard 
-                    type="goal" 
-                    label="Main Goal" 
-                    value={profile?.goal ? profile.goal.split('_')[0] : 'Set Goal'} 
-                    unit="" 
-                    icon={<FaBullseye />}
-                    watermark={<FaTrophy />} // Trophy watermark
-                />
+            {/* ── Top Stat Cards ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    {
+                        label: 'Daily Target',
+                        value: profile?.dailyCalories || 2000,
+                        unit: 'kcal',
+                        icon: '🔥',
+                        gradient: 'from-orange-400 to-amber-500',
+                        shadow: 'shadow-orange-400/20',
+                    },
+                    {
+                        label: 'Protein Goal',
+                        value: profile?.proteinTarget || 50,
+                        unit: 'g',
+                        icon: '🥩',
+                        gradient: 'from-emerald-400 to-teal-500',
+                        shadow: 'shadow-emerald-400/20',
+                    },
+                    {
+                        label: 'Current Weight',
+                        value: recentWeight || profile?.weight || '--',
+                        unit: 'kg',
+                        icon: '⚖️',
+                        gradient: 'from-blue-400 to-indigo-500',
+                        shadow: 'shadow-blue-400/20',
+                    },
+                    {
+                        label: 'Your Goal',
+                        value: profile?.goal ? profile.goal.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('\u00A0') : 'Set goal',
+                        unit: '',
+                        icon: '🎯',
+                        gradient: 'from-violet-400 to-purple-600',
+                        shadow: 'shadow-violet-400/20',
+                    },
+                ].map((card, i) => (
+                    <div
+                        key={i}
+                        className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${card.gradient} text-white p-5 shadow-lg ${card.shadow} group cursor-default`}
+                    >
+                        {/* Glow blob */}
+                        <div className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-white/10 blur-xl transition-all duration-500 group-hover:scale-150" />
+                        <div className="relative z-10">
+                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl mb-3 backdrop-blur-sm">
+                                {card.icon}
+                            </div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1">{card.label}</p>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-extrabold leading-none">{card.value}</span>
+                                {card.unit && <span className="text-sm font-medium text-white/80">{card.unit}</span>}
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
 
+            {/* ── Main 2-col grid ── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Column */}
-                <div className="lg:col-span-2 space-y-8">
-                    
-                    {/* Quick Actions Panel */}
-                    <div className="card-bg rounded-2xl p-6 shadow-sm">
-                        <h2 className="text-lg font-bold text-primary mb-4">Quick Actions</h2>
-                        <div className="grid grid-cols-3 gap-4">
-                            <button 
-                                onClick={() => setActiveSection && setActiveSection('meal-plan')}
-                                className="flex flex-col items-center justify-center p-4 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 transition-colors"
-                            >
-                                <span className="text-2xl mb-2"><MdOutlineRestaurant /></span>
-                                <span className="text-sm font-bold">Plan Meals</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveSection && setActiveSection('food-search')}
-                                className="flex flex-col items-center justify-center p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors"
-                            >
-                                <span className="text-2xl mb-2"><FiSearch /></span>
-                                <span className="text-sm font-bold">Add Food</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveSection && setActiveSection('progress')}
-                                className="flex flex-col items-center justify-center p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors"
-                            >
-                                <span className="text-2xl mb-2"><FiTrendingUp /></span>
-                                <span className="text-sm font-bold">Log Weight</span>
-                            </button>
+
+                {/* Left (2/3) */}
+                <div className="lg:col-span-2 space-y-6">
+
+                    {/* Quick Actions */}
+                    <div className="card-bg rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="flex items-center gap-2 mb-5">
+                            <span className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg"><FiZap size={16} /></span>
+                            <h2 className="text-base font-bold text-primary">Quick Actions</h2>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {quickActions.map(a => (
+                                <button
+                                    key={a.id}
+                                    onClick={() => setActiveSection && setActiveSection(a.id)}
+                                    className="group relative overflow-hidden flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 hover:border-transparent transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                                >
+                                    {/* Gradient fill on hover */}
+                                    <div className={`absolute inset-0 bg-gradient-to-br ${a.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                                    <span className="relative z-10 text-2xl transition-transform duration-300 group-hover:scale-110">{a.emoji}</span>
+                                    <span className="relative z-10 text-xs font-bold text-secondary group-hover:text-white transition-colors duration-300">{a.label}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
 
                     {/* Today's Menu */}
-                    <div className="card-bg rounded-2xl p-6 shadow-sm">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-lg font-bold text-primary flex items-center gap-2">
-                                Menu Preview
-                            </h2>
-                            <button onClick={() => setActiveSection('meal-plan')} className="text-emerald-500 text-sm font-bold hover:underline">View Full Plan →</button>
+                    <div className="card-bg rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="flex justify-between items-center mb-5">
+                            <div className="flex items-center gap-2">
+                                <span className="p-1.5 bg-orange-500/10 text-orange-500 rounded-lg"><MdRestaurantMenu size={16} /></span>
+                                <h2 className="text-base font-bold text-primary">Today's Menu</h2>
+                            </div>
+                            <button
+                                onClick={() => setActiveSection('meal-plan')}
+                                className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:gap-2 transition-all"
+                            >
+                                Full Plan <FiArrowRight size={12} />
+                            </button>
                         </div>
-                        <div className="space-y-3">
-                            {todayMealPlan?.meals?.length > 0 ? (
-                                todayMealPlan.meals.map((meal, index) => (
-                                    <div key={index} className="flex justify-between items-center p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors border border-gray-100 dark:border-gray-700">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl">
-                                                {meal.name.toLowerCase().includes('break') ? <MdOutlineFreeBreakfast /> : 
-                                                 meal.name.toLowerCase().includes('lun') ? <MdOutlineLunchDining /> : <MdOutlineDinnerDining />}
+
+                        <div className="space-y-2">
+                            {todayMealPlan?.meals?.filter(m => m.items?.length > 0).length > 0 ? (
+                                todayMealPlan.meals
+                                    .filter(m => m.items?.length > 0)
+                                    .sort((a, b) => ['breakfast', 'lunch', 'snack-1', 'dinner'].indexOf(a.name) - ['breakfast', 'lunch', 'snack-1', 'dinner'].indexOf(b.name))
+                                    .map((meal, i) => {
+                                        const cfg = {
+                                            breakfast: { time: '9:00 AM', icon: <MdOutlineFreeBreakfast />, border: 'border-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-500' },
+                                            lunch:     { time: '1:00 PM', icon: <MdOutlineLunchDining />,  border: 'border-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-500' },
+                                            'snack-1': { time: '5:00 PM', icon: <MdOutlineRestaurant />,   border: 'border-pink-400', bg: 'bg-pink-50 dark:bg-pink-900/20', text: 'text-pink-500' },
+                                            dinner:    { time: '8:00 PM', icon: <MdOutlineDinnerDining />, border: 'border-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20', text: 'text-indigo-500' },
+                                        };
+                                        const c = cfg[meal.name] || cfg.dinner;
+                                        const mealName = meal.name === 'snack-1' ? 'Snacks' : meal.name.charAt(0).toUpperCase() + meal.name.slice(1);
+
+                                        // Calorie sum for this meal
+                                        let mealCal = 0;
+                                        meal.items?.forEach(item => {
+                                            if (item.food) {
+                                                const factor = (parseFloat(item.servingSize?.amount) || 0) / (parseFloat(item.food.servingSize?.amount) || 100);
+                                                mealCal += ((item.food.nutrition?.calories) || 0) * factor;
+                                            }
+                                        });
+
+                                        return (
+                                            <div
+                                                key={i}
+                                                className={`flex items-center gap-4 p-3.5 rounded-xl border-l-4 ${c.border} ${c.bg} transition-all hover:pl-4 cursor-default`}
+                                            >
+                                                <div className={`w-10 h-10 rounded-xl ${c.bg} ${c.text} flex items-center justify-center text-xl flex-shrink-0`}>
+                                                    {c.icon}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-bold text-primary text-sm">{mealName}</h4>
+                                                    <p className="text-xs text-secondary">{c.time} — {meal.items?.length} item{meal.items?.length !== 1 ? 's' : ''}</p>
+                                                </div>
+                                                <span className={`text-sm font-extrabold ${c.text}`}>
+                                                    {Math.round(mealCal)} kcal
+                                                </span>
                                             </div>
-                                            <div>
-                                                <h4 className="font-bold text-primary capitalize">{meal.name}</h4>
-                                                <p className="text-xs text-secondary">{index * 4 + 8}:00 AM - Recommended</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="block font-bold text-primary">{meal.items?.length || 0}</span>
-                                            <span className="text-xs text-secondary">Items</span>
-                                        </div>
-                                    </div>
-                                ))
+                                        );
+                                    })
                             ) : (
-                                <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-                                    <p className="text-secondary">No meals planned yet.</p>
+                                <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+                                    <p className="text-3xl mb-2">🍽️</p>
+                                    <p className="text-secondary font-medium text-sm">No meals logged yet.</p>
+                                    <button
+                                        onClick={() => setActiveSection('meal-plan')}
+                                        className="mt-3 text-xs font-bold text-emerald-500 hover:underline"
+                                    >Plan your meals →</button>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Sidebar */}
+                {/* Right sidebar */}
                 <div className="space-y-6">
-                    {/* Profile Warning */}
-                    {!profile?.age && (
-                        <div className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg">
-                            <div className="relative z-10">
-                                <h3 className="font-bold text-lg mb-1 flex items-center gap-2">Finish Setup <FiSettings /></h3>
-                                <p className="text-sm opacity-90 mb-4">Add your details for accurate AI tracking.</p>
-                                <button onClick={() => setActiveSection('profile')} className="bg-white text-orange-600 px-4 py-2 rounded-lg text-sm font-bold shadow-md">
-                                    Go to Profile
-                                </button>
+
+                    {/* Macro Chart */}
+                    <div className="card-bg p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="p-1.5 bg-blue-500/10 text-blue-500 rounded-lg"><GiSteak size={16} /></span>
+                            <h3 className="font-bold text-primary text-base">Macro Split</h3>
+                        </div>
+
+                        <div className="h-44 w-full relative">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%" cy="50%"
+                                        innerRadius={52} outerRadius={72}
+                                        paddingAngle={4} dataKey="value" stroke="none"
+                                    >
+                                        {pieData.map((entry, i) => (
+                                            <Cell key={i} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <RechartsTooltip
+                                        formatter={(v, n) => [n === 'No Data' ? '0g' : `${v}g`, n]}
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: '1px solid var(--border)',
+                                            backgroundColor: 'var(--bg-card)',
+                                            color: 'var(--text-main)',
+                                            boxShadow: '0 4px 24px rgba(0,0,0,.12)',
+                                        }}
+                                        itemStyle={{ color: 'var(--text-main)' }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-xl font-extrabold text-primary">{totalMacros}g</span>
+                                <span className="text-[10px] uppercase tracking-widest text-secondary font-semibold">Total</span>
                             </div>
-                            <div className="absolute right-0 bottom-0 text-6xl opacity-20 transform translate-x-2 translate-y-2">
-                                <FiSettings />
+                        </div>
+
+                        {/* Macro bars */}
+                        <div className="mt-4 space-y-3">
+                            {macroData.map(m => {
+                                const pct = totalMacros > 0 ? Math.round((m.value / totalMacros) * 100) : 0;
+                                return (
+                                    <div key={m.name}>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
+                                                <span className="text-xs font-semibold text-secondary">{m.name}</span>
+                                            </div>
+                                            <span className="text-xs font-bold text-primary">{m.value}g <span className="text-secondary font-normal">({pct}%)</span></span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full transition-all duration-1000 ease-out"
+                                                style={{ width: `${pct}%`, backgroundColor: m.color }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Profile Prompt */}
+                    {!profile?.age && (
+                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-6 text-white shadow-lg shadow-orange-400/20">
+                            <div className="absolute -right-4 -bottom-4 text-[80px] opacity-10 pointer-events-none"><FiSettings /></div>
+                            <div className="relative z-10">
+                                <h3 className="font-extrabold text-lg mb-1 flex items-center gap-2">Complete Setup <FiSettings size={16} /></h3>
+                                <p className="text-sm text-white/85 mb-4 leading-relaxed">Add your stats so we can personalize your calorie targets and meal suggestions.</p>
+                                <button
+                                    onClick={() => setActiveSection('profile')}
+                                    className="flex items-center gap-2 bg-white text-orange-600 px-5 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-orange-50 transition-colors"
+                                >
+                                    Go to Profile <FiArrowRight size={14} />
+                                </button>
                             </div>
                         </div>
                     )}
-                    
-                    {/* Health Tip */}
-                    <div className="card-bg p-6 rounded-2xl border-t-4 border-blue-500 shadow-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xl text-blue-500"><IoWaterOutline /></span>
-                            <span className="text-xs font-bold text-blue-500 uppercase">Hydration Tip</span>
+
+                    {/* Water reminder card */}
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 p-5 text-white shadow-lg shadow-sky-400/20">
+                        <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
+                        <div className="relative z-10 flex items-center gap-4">
+                            <div className="text-4xl">💧</div>
+                            <div>
+                                <p className="font-extrabold text-sm">Stay Hydrated!</p>
+                                <p className="text-xs text-white/80 mt-0.5 leading-relaxed">Aim for 8 glasses of water throughout the day.</p>
+                            </div>
                         </div>
-                        <p className="text-primary text-sm leading-relaxed">
-                            Drinking water before meals can help you feel fuller and aid digestion. Aim for a glass 30 mins before eating.
-                        </p>
                     </div>
                 </div>
             </div>

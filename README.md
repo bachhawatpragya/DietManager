@@ -1,1 +1,1 @@
-Project for Diet Mangement for the Users
+Diet Manager - A web application for managing your diet and fitness goals.

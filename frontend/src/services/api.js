@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
-// Configure axios to include token in all requests
+// Request interceptor: attach token to all requests
 axios.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -10,6 +10,20 @@ axios.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Response interceptor: auto-logout on 401 (invalid/expired token)
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            // Token is invalid or expired — clear session and reload to login
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = '/';
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const authAPI = {
     register: async (userData) => {
@@ -98,6 +112,18 @@ export const dietAPI = {
     // Dashboard
     getDashboard: async () => {
         const res = await axios.get(`${API_BASE_URL}/diet/dashboard`);
+        return res.data;
+    },
+
+    // AI Meal Generation
+    generateMealPlan: async () => {
+        const res = await axios.post(`${API_BASE_URL}/diet/meal-plan/generate`);
+        return res.data;
+    },
+
+    // Grocery List
+    getGroceryList: async (startDate, endDate) => {
+        const res = await axios.get(`${API_BASE_URL}/diet/grocery-list?startDate=${startDate}&endDate=${endDate}`);
         return res.data;
     }
 };
