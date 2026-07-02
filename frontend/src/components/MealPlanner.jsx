@@ -335,7 +335,7 @@ const MealPlanner = ({ darkMode, onPlanUpdate, onNavigate }) => {
 
     return (
         <>
-            <div className={`min-h-screen font-sans transition-colors duration-300 ${darkMode ? 'dark-theme' : ''}`}>
+            <div className={`w-full font-sans transition-colors duration-300 ${darkMode ? 'dark-theme' : ''}`}>
 
                 <div className="max-w-7xl mx-auto space-y-12 pb-12 animate-enter">
 

@@ -35,3 +35,6 @@ frontend/.env
 *.njsproj
 *.sln
 *.sw?
+
+#testfile
+test-chat.js

@@ -9,7 +9,7 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Dashboard from './components/Dashboard';
 
-import useChatbase from "./hooks/useChatbase";
+import ChatbotWidget from './components/ChatbotWidget';
 
 const AuthApp = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -31,18 +31,13 @@ const AuthApp = () => {
   );
 };
 
-function ChatbaseManager() {
-  useChatbase();
-  return null;
-}
-
 function App() {
   return (
     <Router>
       <AuthProvider>
 
-        {/* ✔ Chatbase is NOW inside AuthProvider, so useAuth() works */}
-        <ChatbaseManager />
+        {/* Custom AI Chatbot Widget */}
+        <ChatbotWidget />
 
         <Routes>
           <Route path="/" element={<AuthApp />} />

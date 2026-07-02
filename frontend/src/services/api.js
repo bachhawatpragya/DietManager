@@ -127,3 +127,10 @@ export const dietAPI = {
         return res.data;
     }
 };
+
+export const chatAPI = {
+    sendMessage: async (message, history = []) => {
+        const res = await axios.post(`${API_BASE_URL}/chat`, { message, history });
+        return res.data;
+    }
+};

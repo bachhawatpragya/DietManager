@@ -12,6 +12,7 @@ console.log('🌿 DietManager backend starting...');
 import authRoutes from './src/routes/auth.js';
 import dietRoutes from './src/routes/diet.js';
 import contactRoutes from './src/routes/contact.js';
+import chatRoutes from './src/routes/chat.js';
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/diet', dietRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

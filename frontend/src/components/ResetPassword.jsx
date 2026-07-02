@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router'; // Using standard web router import
+import { useParams, useNavigate } from 'react-router';
 import { authAPI } from '../services/api';
+import { FiLock, FiEye, FiEyeOff, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
 
 const ResetPassword = () => {
     const [formData, setFormData] = useState({
         password: '',
         confirmPassword: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
@@ -49,7 +52,7 @@ const ResetPassword = () => {
                     navigate('/login');
                 }, 2000);
             } else {
-                setError(result.message);
+                setError(result.message || 'Something went wrong.');
             }
         } catch (error) {
             setError('Invalid or expired reset token');
@@ -59,38 +62,62 @@ const ResetPassword = () => {
         }
     };
 
-    // --- Custom Styles & Animations ---
-    const styles = `
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+    // --- Premium Styling & Custom Keyframes ---
+    const customStyles = `
+        @keyframes float-orb-1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
         }
-        .animate-card { animation: slideUp 0.5s ease-out forwards; }
-        
-        .input-group:focus-within svg { color: #10b981; }
-        .input-group:focus-within input { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+        @keyframes float-orb-2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-40px, 40px) scale(1.15); }
+        }
+        .animate-float-1 {
+            animation: float-orb-1 12s infinite ease-in-out;
+        }
+        .animate-float-2 {
+            animation: float-orb-2 16s infinite ease-in-out;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glow-input:focus-within {
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        }
     `;
 
     // --- Invalid Token View ---
     if (!validToken) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans p-4">
-                <style>{styles}</style>
-                <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden p-8 text-center animate-card">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
+            <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 font-sans p-4 relative overflow-hidden">
+                <style>{customStyles}</style>
+                {/* Background Decorative Animated Blobs/Orbs */}
+                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-500/10 blur-[120px] animate-float-1 pointer-events-none"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-teal-500/10 blur-[120px] animate-float-2 pointer-events-none"></div>
+
+                <div className="max-w-md w-full glass-panel rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-8 text-center z-10 relative">
+                    <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20 shadow-sm">
+                        <span className="text-2xl">⚠️</span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Link Expired</h3>
-                    <p className="text-gray-500 mb-6">
-                        This password reset link is invalid or has expired. Please request a new one.
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Link Expired</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed">
+                        This password reset link is invalid or has expired. Please request a new link.
                     </p>
                     <button
                         onClick={() => navigate('/login')}
-                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-colors"
+                        className="w-full flex items-center justify-center gap-2 py-3.5 px-4 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-all duration-200 cursor-pointer"
                     >
-                        Back to Login
+                        <FiArrowLeft className="text-lg" />
+                        <span>Back to Login</span>
                     </button>
                 </div>
             </div>
@@ -99,103 +126,120 @@ const ResetPassword = () => {
 
     // --- Main Reset Form View ---
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans p-4 relative overflow-hidden">
-            <style>{styles}</style>
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 font-sans p-4 relative overflow-hidden">
+            <style>{customStyles}</style>
             
-            {/* Background Decoration */}
-            <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-r from-emerald-600 to-teal-600"></div>
-            <div className="absolute top-10 right-10 text-9xl opacity-10 text-white animate-pulse">🔒</div>
+            {/* Background Decorative Animated Blobs/Orbs */}
+            <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-500/10 blur-[120px] animate-float-1 pointer-events-none"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-teal-500/10 blur-[120px] animate-float-2 pointer-events-none"></div>
 
-            <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 md:p-10 relative z-10 animate-card">
+            <div className="max-w-md w-full glass-panel rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-8 md:p-10 z-10 relative">
                 
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm transform -rotate-6">
-                        <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11.536 12 10 10.536 11.464 9 7.464 5.336M12 9a2 2 0 00-2-2m6 2a2 2 0 012 2m-6 4h6m-6 4h6m-6-10h6" />
-                        </svg>
+                    <div className="w-14 h-14 bg-emerald-500/15 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-sm">
+                        <span className="text-2xl">🔒</span>
                     </div>
-                    <h2 className="text-2xl font-extrabold text-gray-900">Reset Password</h2>
-                    <p className="mt-2 text-sm text-gray-500">Secure your account with a new password.</p>
+                    <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Reset Password</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Please enter your new password to secure your account.
+                    </p>
                 </div>
 
-                <form className="space-y-6" onSubmit={handleSubmit}>
+                <form className="space-y-5" onSubmit={handleSubmit}>
                     
-                    {/* Messages */}
+                    {/* Error Notification Alert */}
                     {error && (
-                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r text-sm font-medium flex items-center">
-                            <span className="mr-2">⚠️</span> {error}
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 p-4 rounded-2xl text-sm font-medium flex items-center gap-2.5 transition-all duration-300">
+                            <span>⚠️</span>
+                            <p className="leading-tight">{error}</p>
                         </div>
                     )}
+
+                    {/* Success Notification Alert */}
                     {success && (
-                        <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-r text-sm font-medium flex items-center">
-                            <span className="mr-2">✅</span> {success}
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-2xl text-sm font-medium flex items-center gap-2.5 transition-all duration-300">
+                            <FiCheckCircle className="text-lg" />
+                            <p className="leading-tight">{success}</p>
                         </div>
                     )}
                     
                     <div className="space-y-4">
-                        {/* New Password Input */}
-                        <div className="space-y-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase ml-1">New Password</label>
-                            <div className="relative input-group">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-5 w-5 text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
+                        {/* Password Input group */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider ml-1">
+                                New Password
+                            </label>
+                            <div className="relative border border-slate-200 dark:border-slate-800 rounded-2xl transition-all duration-200 bg-slate-50/50 dark:bg-slate-900/30 glow-input flex items-center">
+                                <div className="pl-4 text-slate-400 pointer-events-none">
+                                    <FiLock className="text-lg" />
                                 </div>
                                 <input
                                     name="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     required
-                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 bg-gray-50"
+                                    className="block w-full pl-3 pr-10 py-3.5 bg-transparent text-slate-950 dark:text-white placeholder-slate-400 focus:outline-none text-sm rounded-2xl"
                                     placeholder="••••••••"
                                     value={formData.password}
                                     onChange={handleChange}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-200 cursor-pointer"
+                                >
+                                    {showPassword ? <FiEyeOff className="text-lg" /> : <FiEye className="text-lg" />}
+                                </button>
                             </div>
                         </div>
 
-                        {/* Confirm Password Input */}
-                        <div className="space-y-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase ml-1">Confirm Password</label>
-                            <div className="relative input-group">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-5 w-5 text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                        {/* Confirm Password Input group */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider ml-1">
+                                Confirm Password
+                            </label>
+                            <div className="relative border border-slate-200 dark:border-slate-800 rounded-2xl transition-all duration-200 bg-slate-50/50 dark:bg-slate-900/30 glow-input flex items-center">
+                                <div className="pl-4 text-slate-400 pointer-events-none">
+                                    <FiLock className="text-lg" />
                                 </div>
                                 <input
                                     name="confirmPassword"
-                                    type="password"
+                                    type={showConfirmPassword ? "text" : "password"}
                                     required
-                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 bg-gray-50"
+                                    className="block w-full pl-3 pr-10 py-3.5 bg-transparent text-slate-950 dark:text-white placeholder-slate-400 focus:outline-none text-sm rounded-2xl"
                                     placeholder="••••••••"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-200 cursor-pointer"
+                                >
+                                    {showConfirmPassword ? <FiEyeOff className="text-lg" /> : <FiEye className="text-lg" />}
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-2">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 shadow-lg shadow-emerald-200 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {loading ? (
-                                <div className="flex items-center">
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Updating...
-                                </div>
-                            ) : (
-                                'Reset Password'
-                            )}
-                        </button>
-                    </div>
+                    {/* Submit Button */}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="group relative w-full flex items-center justify-center gap-2 py-3.5 px-4 border border-transparent text-sm font-bold rounded-2xl text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer mt-4"
+                    >
+                        {loading ? (
+                            <div className="flex items-center gap-2">
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Resetting...</span>
+                            </div>
+                        ) : (
+                            <span>Reset Password</span>
+                        )}
+                    </button>
                 </form>
             </div>
         </div>
