@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+let base = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// Normalize: Remove trailing slash and ensure it ends with /api
+base = base.replace(/\/$/, "");
+if (!base.endsWith("/api")) {
+    base += "/api";
+}
+const API_BASE_URL = base;
 
 // Request interceptor: attach token to all requests
 axios.interceptors.request.use((config) => {
