@@ -52,6 +52,7 @@ export const generateDailyMenu = async (profile) => {
                   "items": [
                     { 
                         "name": "string (food name)", 
+                        "category": "string (must be one of: 'fruits', 'vegetables', 'grains', 'protein', 'dairy', 'fats', 'beverages', 'snacks', 'condiments', 'other')",
                         "servingSize": { "amount": number, "unit": "g|ml|piece" },
                         "nutrition": { "calories": number, "protein": number, "carbs": number, "fat": number } 
                     }

@@ -85,14 +85,36 @@ router.get('/profile', async (req, res) => {
 router.get('/foods', async (req, res) => {
     try {
         const { search, category, page = 1, limit = 20 } = req.query;
-        let query = { isPublic: true };
+        
+        let query = {
+            $or: [
+                { isPublic: true },
+                { createdBy: req.user.userId }
+            ]
+        };
         
         if (search && search.trim() !== '') {
-            query.$text = { $search: search };
+            query = {
+                $and: [
+                    {
+                        $or: [
+                            { isPublic: true },
+                            { createdBy: req.user.userId }
+                        ]
+                    },
+                    {
+                        $text: { $search: search }
+                    }
+                ]
+            };
         }
         
         if (category && category !== '') {
-            query.category = category;
+            if (query.$and) {
+                query.$and.push({ category });
+            } else {
+                query.category = category;
+            }
         }
 
         const foods = await Food.find(query)
@@ -118,7 +140,7 @@ router.get('/foods', async (req, res) => {
     }
 });
 
-// Food Routes - Search external APIs
+// Food Routes - Search both local database and external APIs
 router.get('/foods/search', async (req, res) => {
     try {
         const { query } = req.query;
@@ -130,12 +152,39 @@ router.get('/foods/search', async (req, res) => {
             });
         }
 
-        const results = await FoodAPIService.searchFoods(query);
+        // Search local database (public foods or foods created by this user)
+        const localFoods = await Food.find({
+            $and: [
+                {
+                    $or: [
+                        { isPublic: true },
+                        { createdBy: req.user.userId }
+                    ]
+                },
+                {
+                    name: { $regex: query, $options: 'i' }
+                }
+            ]
+        }).limit(15);
+
+        // Search external USDA API
+        const externalResults = await FoodAPIService.searchFoods(query);
+
+        // Merge and remove duplicates by case-insensitive name
+        const combinedResults = [...localFoods];
+        externalResults.forEach(extFood => {
+            const isDuplicate = combinedResults.some(
+                localFood => localFood.name.toLowerCase() === extFood.name.toLowerCase()
+            );
+            if (!isDuplicate) {
+                combinedResults.push(extFood);
+            }
+        });
 
         res.json({
             success: true,
-            results,
-            count: results.length
+            results: combinedResults,
+            count: combinedResults.length
         });
     } catch (error) {
         console.error('❌ Food search error:', error);
@@ -174,13 +223,12 @@ router.post('/meal-plan/generate', async (req, res) => {
                 });
 
                 if (!food) {
-                    // Create new food entry
                     food = new Food({
                         name: item.name,
                         brand: 'AI Generated',
                         servingSize: item.servingSize,
                         nutrition: item.nutrition,
-                        category: 'other',
+                        category: item.category || FoodAPIService.categorizeFood(item.name),
                         source: 'sample',
                         isPublic: false,
                         createdBy: req.user.userId
