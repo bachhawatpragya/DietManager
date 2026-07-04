@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaInstagram, FaTwitter, FaFacebook } from "react-icons/fa";
-import { useState } from "react";
-import axios from "axios";
+import { contactAPI } from "../services/api";
 
 export default function ContactPage() {
   const [form, setForm] = useState({
@@ -18,7 +17,7 @@ export default function ContactPage() {
     e.preventDefault();
 
     try {
-      await axios.post("http://localhost:5000/api/contact/send-mail", form);
+      await contactAPI.sendMail(form);
       alert("Thanks for contacting us!");
       setForm({ name: "", email: "", message: "" });
     } catch (err) {

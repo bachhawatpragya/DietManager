@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Request interceptor: attach token to all requests
 axios.interceptors.request.use((config) => {
@@ -131,6 +131,13 @@ export const dietAPI = {
 export const chatAPI = {
     sendMessage: async (message, history = []) => {
         const res = await axios.post(`${API_BASE_URL}/chat`, { message, history });
+        return res.data;
+    }
+};
+
+export const contactAPI = {
+    sendMail: async (form) => {
+        const res = await axios.post(`${API_BASE_URL}/contact/send-mail`, form);
         return res.data;
     }
 };
