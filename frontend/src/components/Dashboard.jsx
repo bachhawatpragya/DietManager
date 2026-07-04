@@ -71,7 +71,13 @@ const Dashboard = () => {
 
     const loadDashboardData = async () => {
         try {
-            const result = await dietAPI.getDashboard();
+            const getLocalDateString = (date = new Date()) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            const result = await dietAPI.getDashboard(getLocalDateString());
             if (result.success) setDashboardData(result.stats);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
@@ -623,7 +629,13 @@ const DashboardOverview = ({ data, onRefresh, setActiveSection, darkMode }) => {
    WaterTracker Donut/Progress Widget
 ════════════════════════════════════════════ */
 const WaterTracker = () => {
-    const todayKey = `water_${new Date().toISOString().slice(0, 10)}`;
+    const getLocalDateString = (date = new Date()) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    const todayKey = `water_${getLocalDateString()}`;
     const [glasses, setGlasses] = useState(() => parseInt(localStorage.getItem(todayKey) || '0', 10));
 
     const setAndPersist = (n) => {

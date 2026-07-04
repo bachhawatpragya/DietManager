@@ -514,8 +514,15 @@ router.get('/progress', async (req, res) => {
 router.get('/dashboard', async (req, res) => {
     try {
         const profile = await UserProfile.findOne({ userId: req.user.userId });
-        const now = new Date();
-        const todayUtc = new Date(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+        
+        const { date } = req.query;
+        let todayUtc;
+        if (date) {
+            todayUtc = new Date(date);
+        } else {
+            const now = new Date();
+            todayUtc = new Date(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+        }
         
         const todayMealPlan = await MealPlan.findOne({
             userId: req.user.userId,

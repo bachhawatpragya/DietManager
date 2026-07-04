@@ -116,8 +116,9 @@ export const dietAPI = {
     },
 
     // Dashboard
-    getDashboard: async () => {
-        const res = await axios.get(`${API_BASE_URL}/diet/dashboard`);
+    getDashboard: async (date) => {
+        const url = date ? `${API_BASE_URL}/diet/dashboard?date=${date}` : `${API_BASE_URL}/diet/dashboard`;
+        const res = await axios.get(url);
         return res.data;
     },
 
