@@ -2,7 +2,7 @@
 
 A web application for managing diet, fitness, and nutrition goals, powered by React and Node.js.
 
-### 🔗 Live Deployment: [View Application](https://your-live-deployment-link.onrender.com)
+### 🔗 Live Deployment: [View Application](https://dietmanager.onrender.com)
 
 ---
 
